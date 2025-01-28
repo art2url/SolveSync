@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>SolveSync</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      input,
+      button {
+        margin-top: 10px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>SolveSync</h3>
+    <label for="repo">GitHub Repo:</label>
+    <input type="text" id="repo" placeholder="user/repo-name" />
+
+    <label for="token">GitHub Token:</label>
+    <input type="password" id="token" placeholder="Personal Access Token" />
+
+    <button id="save">Save Solution</button>
+  </body>
+  <script src="popup.js"></script>
+</html>
