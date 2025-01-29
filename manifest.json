@@ -2,12 +2,18 @@
   "manifest_version": 3,
   "name": "SolveSync",
   "version": "1.0",
-  "description": "Automate Solution Uploads to GitHub.",
+  "description": "Automatically upload LeetCode solutions to GitHub.",
   "permissions": ["storage", "identity"],
   "host_permissions": ["https://leetcode.com/*"],
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content.js"]
+    }
+  ],
   "action": {
     "default_popup": "popup.html"
   }
