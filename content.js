@@ -1,17 +1,36 @@
-// Inject a script to interact with the LeetCode editor
-const extractCode = () => {
-  const codeElement = document.querySelector('.CodeMirror-code');
-  if (!codeElement) return null;
+function getCodeFromEditor() {
+  const editor = document.querySelector('.monaco-editor'); // Get code editor
+  if (!editor) return null;
 
-  return [...codeElement.querySelectorAll('.CodeMirror-line')]
-    .map((line) => line.textContent)
-    .join('\n');
-};
+  const code = editor.innerText; // Extract code from editor
+  return code;
+}
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'extractCode') {
-    const code = extractCode();
-    const title = document.querySelector('.css-v3d350').textContent.trim();
-    sendResponse({ code, title });
-  }
-});
+function getProblemTitle() {
+  const titleElement = document.querySelector('h1.text-label-1');
+  return titleElement
+    ? titleElement.innerText.replace(/\s+/g, '-')
+    : 'unknown-problem';
+}
+
+function listenForSubmission() {
+  document.addEventListener('click', async (event) => {
+    if (event.target.innerText.includes('Submit')) {
+      setTimeout(async () => {
+        const code = getCodeFromEditor();
+        const problemTitle = getProblemTitle();
+
+        if (code) {
+          console.log('Code Submitted:', code);
+          chrome.runtime.sendMessage({
+            action: 'UPLOAD_CODE',
+            problemTitle,
+            code,
+          });
+        }
+      }, 5000); // Wait 5 seconds after submission
+    }
+  });
+}
+
+listenForSubmission();
