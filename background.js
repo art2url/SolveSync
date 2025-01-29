@@ -1,69 +1,61 @@
-const GITHUB_CLIENT_ID = 'your_github_client_id';
+const GITHUB_REPO = 'your-github-username/leetcode-solutions';
 
-async function authenticateWithGitHub() {
+async function uploadToGitHub(problemTitle, code) {
   try {
-    // Step 1: Request Device Code
-    const deviceCodeResponse = await fetch(
-      'https://github.com/login/device/code',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' }),
-      }
-    );
-
-    const deviceCodeData = await deviceCodeResponse.json();
-    console.log('Device Code Response:', deviceCodeData);
-
-    // Step 2: Ask user to manually authenticate
-    alert(
-      `Go to ${deviceCodeData.verification_uri} and enter this code: ${deviceCodeData.user_code}`
-    );
-
-    // Step 3: Poll GitHub for Access Token
-    let accessToken = null;
-    while (!accessToken) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, deviceCodeData.interval * 1000)
-      );
-
-      const tokenResponse = await fetch(
-        'https://github.com/login/oauth/access_token',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({
-            client_id: GITHUB_CLIENT_ID,
-            device_code: deviceCodeData.device_code,
-            grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-          }),
-        }
-      );
-
-      const tokenData = await tokenResponse.json();
-      console.log('Token Response:', tokenData);
-
-      if (tokenData.access_token) {
-        accessToken = tokenData.access_token;
-      }
+    // Get GitHub Token
+    const { github_token } = await chrome.storage.local.get('github_token');
+    if (!github_token) {
+      alert('Please authenticate with GitHub first.');
+      return;
     }
 
-    // Store token in Chrome storage
-    chrome.storage.local.set({ github_token: accessToken });
+    const filename = `solutions/${problemTitle}.txt`;
+    const commitMessage = `Added solution for ${problemTitle}`;
 
-    alert('GitHub Authentication Successful!');
+    // Get SHA if file exists (GitHub API requires SHA for overwriting)
+    let sha = null;
+    const fileResponse = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/contents/${filename}`,
+      {
+        headers: { Authorization: `Bearer ${github_token}` },
+      }
+    );
+
+    if (fileResponse.ok) {
+      const fileData = await fileResponse.json();
+      sha = fileData.sha;
+    }
+
+    // Upload to GitHub
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/contents/${filename}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${github_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: commitMessage,
+          content: btoa(code), // Encode code in Base64
+          sha, // Required for overwriting an existing file
+        }),
+      }
+    );
+
+    if (response.ok) {
+      alert(`✅ Successfully uploaded ${problemTitle} to GitHub!`);
+    } else {
+      console.error('GitHub Upload Failed:', await response.json());
+    }
   } catch (error) {
-    console.error('GitHub Authentication Failed:', error);
+    console.error('Error uploading to GitHub:', error);
   }
 }
 
-// Trigger authentication when extension is clicked
-chrome.action.onClicked.addListener(() => {
-  authenticateWithGitHub();
+// Listen for messages from content.js
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === 'UPLOAD_CODE') {
+    uploadToGitHub(message.problemTitle, message.code);
+  }
 });
