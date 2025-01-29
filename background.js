@@ -1,61 +1,30 @@
-chrome.action.onClicked.addListener((tab) => {
-  chrome.storage.local.get(['repo', 'token'], async ({ repo, token }) => {
-    if (!repo || !token) {
-      alert('Please set up your GitHub details in the extension popup.');
-      return;
-    }
+const GITHUB_CLIENT_ID = 'YOUR_GITHUB_CLIENT_ID';
+const REDIRECT_URI = `https://${chrome.runtime.id}.chromiumapp.org/`;
 
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tab.id },
-        files: ['content.js'],
-      },
-      () => {
-        chrome.tabs.sendMessage(
-          tab.id,
-          { action: 'extractCode' },
-          async (response) => {
-            if (!response || !response.code) {
-              alert(
-                "No code found! Make sure you're on a LeetCode problem page."
-              );
-              return;
-            }
+async function authenticateWithGitHub() {
+  const authURL = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+    REDIRECT_URI
+  )}&scope=repo`;
 
-            const { code, title } = response;
-            const filename = `${title.replace(/\s+/g, '_')}.js`;
+  try {
+    const responseUrl = await chrome.identity.launchWebAuthFlow({
+      url: authURL,
+      interactive: true,
+    });
 
-            // Save the code to GitHub
-            const githubApiUrl = `https://api.github.com/repos/${repo}/contents/${filename}`;
-            const fileContent = btoa(unescape(encodeURIComponent(code))); // Base64 encoding
+    if (responseUrl) {
+      const urlParams = new URLSearchParams(new URL(responseUrl).search);
+      const code = urlParams.get('code');
 
-            try {
-              const res = await fetch(githubApiUrl, {
-                method: 'PUT',
-                headers: {
-                  Authorization: `token ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  message: `Add solution for ${title}`,
-                  content: fileContent,
-                }),
-              });
-
-              if (res.ok) {
-                alert(`Solution for "${title}" saved to GitHub!`);
-              } else {
-                alert(
-                  'Failed to save solution to GitHub. Check your repo and token.'
-                );
-              }
-            } catch (error) {
-              console.error(error);
-              alert('An error occurred while saving the solution.');
-            }
-          }
-        );
+      if (code) {
+        console.log('GitHub Auth Code:', code);
+        // Send this `code` to your backend for an access token
       }
-    );
-  });
-});
+    }
+  } catch (error) {
+    console.error('GitHub OAuth failed:', error);
+  }
+}
+
+// Call the function when needed (e.g., on a button click)
+authenticateWithGitHub();
