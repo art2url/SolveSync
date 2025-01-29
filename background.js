@@ -4,7 +4,7 @@ const REDIRECT_URI = `https://${chrome.runtime.id}.chromiumapp.org/`;
 async function authenticateWithGitHub() {
   const authURL = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
-  )}&scope=repo`;
+  )}&scope=public_repo`;
 
   try {
     const responseUrl = await chrome.identity.launchWebAuthFlow({
@@ -14,17 +14,15 @@ async function authenticateWithGitHub() {
 
     if (responseUrl) {
       const urlParams = new URLSearchParams(new URL(responseUrl).search);
-      const code = urlParams.get('code');
-
-      if (code) {
-        console.log('GitHub Auth Code:', code);
-        // Send this `code` to your backend for an access token
-      }
+      const authCode = urlParams.get('code');
+      console.log('GitHub Auth Code:', authCode);
     }
   } catch (error) {
     console.error('GitHub OAuth failed:', error);
   }
 }
 
-// Call the function when needed (e.g., on a button click)
-authenticateWithGitHub();
+// Run when the extension is clicked
+chrome.action.onClicked.addListener(() => {
+  authenticateWithGitHub();
+});
