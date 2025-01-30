@@ -1,53 +1,27 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'UPLOAD_CODE') {
-    chrome.storage.local.get('github_token', ({ github_token }) => {
-      if (!github_token) {
-        chrome.runtime.sendMessage({
-          status: 'GitHub Authentication Required',
-        });
-        return;
-      }
+    const manifest = chrome.runtime.getManifest();
+    const githubUsername = manifest.solveSyncConfig.github_username;
+    const repoName = 'SolveSync';
+    const filePath = `leetcode/${message.problemTitle}.js`;
 
-      const { problemTitle, code } = message;
-      const repo = 'LeetCode-Solutions'; // Your GitHub repo name
-      const path = `leetcode/${problemTitle}.js`;
-      const commitMessage = `Added solution for ${problemTitle}`;
+    const githubApiUrl = `https://api.github.com/repos/${githubUsername}/${repoName}/contents/${filePath}`;
 
-      fetch(
-        `https://api.github.com/repos/YOUR_GITHUB_USERNAME/${repo}/contents/${path}`,
-        {
-          method: 'GET',
-          headers: { Authorization: `token ${github_token}` },
-        }
-      )
-        .then((response) => response.json())
-        .then((fileData) => {
-          const content = btoa(code);
-          const payload = {
-            message: commitMessage,
-            content,
-            branch: 'main',
-          };
+    const requestData = {
+      message: `Add solution for ${message.problemTitle}`,
+      content: btoa(message.code),
+    };
 
-          if (fileData.sha) {
-            payload.sha = fileData.sha;
-          }
-
-          return fetch(
-            `https://api.github.com/repos/YOUR_GITHUB_USERNAME/${repo}/contents/${path}`,
-            {
-              method: 'PUT',
-              headers: {
-                Authorization: `token ${github_token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload),
-            }
-          );
-        })
-        .then((res) => res.json())
-        .then((data) => console.log('File uploaded:', data))
-        .catch((error) => console.error('Upload failed:', error));
-    });
+    fetch(githubApiUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${localStorage.getItem('github_token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData),
+    })
+      .then((res) => res.json())
+      .then((data) => console.log('Uploaded:', data))
+      .catch((err) => console.error('Upload Error:', err));
   }
 });
