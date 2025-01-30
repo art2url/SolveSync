@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', async function () {
-  const clientId = 'Ov23lik3RKBt8FYYNzaV'; // Your GitHub Client ID
-  const redirectUri = 'https://solvesync-backend.onrender.com/auth/github'; // Server URL
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo&redirect_uri=${redirectUri}`;
+  const clientId = chrome.runtime.getManifest().oauth2.client_id;
+  const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo`;
 
   document
     .getElementById('github-login')
@@ -9,28 +8,30 @@ document.addEventListener('DOMContentLoaded', async function () {
       chrome.tabs.create({ url: authUrl });
     });
 
+  // Fetch the access token if redirected from GitHub
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  if (urlParams.has('access_token')) {
+    const accessToken = urlParams.get('access_token');
+    const githubUsername = urlParams.get('github_username');
+
+    if (accessToken && githubUsername) {
+      // Store in Chrome storage
+      chrome.storage.local.set(
+        { github_token: accessToken, github_username: githubUsername },
+        () => {
+          console.log('GitHub token stored successfully');
+          document.getElementById('github-username').innerText = githubUsername;
+        }
+      );
+    }
+  }
+
   // Check if the user is already logged in
   chrome.storage.local.get(['github_token', 'github_username'], (data) => {
     if (data.github_username) {
       document.getElementById('github-username').innerText =
         data.github_username;
-    }
-  });
-
-  // Listen for messages from background.js to store the token
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === 'STORE_GITHUB_TOKEN') {
-      chrome.storage.local.set(
-        {
-          github_token: message.token,
-          github_username: message.username,
-        },
-        () => {
-          document.getElementById('github-username').innerText =
-            message.username;
-          console.log('GitHub authentication successful!');
-        }
-      );
     }
   });
 });
