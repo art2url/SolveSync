@@ -1,61 +1,53 @@
-const GITHUB_REPO = 'your-github-username/leetcode-solutions';
-
-async function uploadToGitHub(problemTitle, code) {
-  try {
-    // Get GitHub Token
-    const { github_token } = await chrome.storage.local.get('github_token');
-    if (!github_token) {
-      alert('Please authenticate with GitHub first.');
-      return;
-    }
-
-    const filename = `solutions/${problemTitle}.txt`;
-    const commitMessage = `Added solution for ${problemTitle}`;
-
-    // Get SHA if file exists (GitHub API requires SHA for overwriting)
-    let sha = null;
-    const fileResponse = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/contents/${filename}`,
-      {
-        headers: { Authorization: `Bearer ${github_token}` },
-      }
-    );
-
-    if (fileResponse.ok) {
-      const fileData = await fileResponse.json();
-      sha = fileData.sha;
-    }
-
-    // Upload to GitHub
-    const response = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/contents/${filename}`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${github_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: commitMessage,
-          content: btoa(code), // Encode code in Base64
-          sha, // Required for overwriting an existing file
-        }),
-      }
-    );
-
-    if (response.ok) {
-      alert(`✅ Successfully uploaded ${problemTitle} to GitHub!`);
-    } else {
-      console.error('GitHub Upload Failed:', await response.json());
-    }
-  } catch (error) {
-    console.error('Error uploading to GitHub:', error);
-  }
-}
-
-// Listen for messages from content.js
-chrome.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'UPLOAD_CODE') {
-    uploadToGitHub(message.problemTitle, message.code);
+    chrome.storage.local.get('github_token', ({ github_token }) => {
+      if (!github_token) {
+        chrome.runtime.sendMessage({
+          status: 'GitHub Authentication Required',
+        });
+        return;
+      }
+
+      const { problemTitle, code } = message;
+      const repo = 'LeetCode-Solutions'; // Your GitHub repo name
+      const path = `leetcode/${problemTitle}.js`;
+      const commitMessage = `Added solution for ${problemTitle}`;
+
+      fetch(
+        `https://api.github.com/repos/YOUR_GITHUB_USERNAME/${repo}/contents/${path}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `token ${github_token}` },
+        }
+      )
+        .then((response) => response.json())
+        .then((fileData) => {
+          const content = btoa(code);
+          const payload = {
+            message: commitMessage,
+            content,
+            branch: 'main',
+          };
+
+          if (fileData.sha) {
+            payload.sha = fileData.sha;
+          }
+
+          return fetch(
+            `https://api.github.com/repos/YOUR_GITHUB_USERNAME/${repo}/contents/${path}`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `token ${github_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+        })
+        .then((res) => res.json())
+        .then((data) => console.log('File uploaded:', data))
+        .catch((error) => console.error('Upload failed:', error));
+    });
   }
 });
