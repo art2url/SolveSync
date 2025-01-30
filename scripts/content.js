@@ -15,7 +15,6 @@ document.addEventListener('click', async (event) => {
     setTimeout(() => {
       const code = getCodeFromEditor();
       const problemTitle = getProblemTitle();
-
       if (code) {
         chrome.runtime.sendMessage({
           action: 'UPLOAD_CODE',
