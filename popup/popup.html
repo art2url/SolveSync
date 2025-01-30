@@ -1,28 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SolveSync</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-      }
-      input,
-      button {
-        margin-top: 10px;
-        width: 100%;
-      }
-    </style>
+    <script defer src="popup.js"></script>
   </head>
   <body>
-    <h3>SolveSync</h3>
-    <label for="repo">GitHub Repo:</label>
-    <input type="text" id="repo" placeholder="user/repo-name" />
-
-    <label for="token">GitHub Token:</label>
-    <input type="password" id="token" placeholder="Personal Access Token" />
-
-    <button id="save">Save Solution</button>
+    <h2>SolveSync</h2>
+    <button id="github-auth">Authorize GitHub</button>
+    <p id="status">Not authenticated</p>
   </body>
-  <script src="../popup/popup.js"></script>
 </html>
