@@ -1,15 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "SolveSync - LeetCode to GitHub",
-  "version": "1.01",
-  "description": "Automatically upload LeetCode solutions to your GitHub repository.",
-  "permissions": ["storage", "identity", "scripting"],
+  "name": "SolveSync",
+  "version": "1.0",
+  "description": "Automate Solution Uploads to GitHub.",
+  "permissions": ["identity", "storage"],
   "host_permissions": ["https://leetcode.com/*"],
   "background": {
     "service_worker": "background.js"
-  },
-  "action": {
-    "default_popup": "popup/popup.html"
   },
   "icons": {
     "16": "images/icon-16.png",
@@ -17,8 +14,18 @@
     "48": "images/icon-48.png",
     "128": "images/icon-128.png"
   },
+  "action": {
+    "default_popup": "popup.html"
+  },
   "oauth2": {
-    "client_id": "YOUR_GITHUB_CLIENT_ID",
+    "client_id": "Ov23lik3RKBt8FYYNzaV",
     "scopes": ["repo"]
+  },
+  "externally_connectable": {
+    "matches": ["*://leetcode.com/*"]
+  },
+  "solveSyncConfig": {
+    "github_username": "art2url",
+    "repo_link": "https://github.com/art2url/SolveSync"
   }
 }
