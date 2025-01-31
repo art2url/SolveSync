@@ -7,30 +7,24 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Header Section -->
-    <div id="header">
-      <h1>SolveSync</h1>
-      <p id="description">Upload your LeetCode solutions to GitHub</p>
-    </div>
+    <h1>SolveSync</h1>
+    <p>Upload your LeetCode solutions to GitHub</p>
 
-    <!-- Usage Instructions Section -->
-    <div id="usage-info">
-      <p><strong>How to Use:</strong></p>
-      <p>1. Log in with your GitHub account.</p>
-      <p>2. Submit a solution on LeetCode.</p>
-      <p>
-        3. Your solution will be automatically uploaded to your GitHub
-        repository.
-      </p>
-    </div>
-
-    <!-- Login Button -->
-    <button id="github-login">Login with GitHub</button>
-
-    <!-- Status Section -->
+    <!-- Status and login -->
     <div id="status-container">
       <span class="status-icon disconnected" id="status-icon"></span>
       <p id="github-username">Not Logged In</p>
+    </div>
+
+    <button id="github-login">Login with GitHub</button>
+
+    <!-- Settings Button and Settings Form -->
+    <button id="settings-button">Settings</button>
+    <!-- Settings button -->
+    <div id="settings-block" style="display: none">
+      <input type="text" id="repo" placeholder="GitHub Repository" />
+      <input type="text" id="branch" placeholder="Branch" />
+      <button id="settings-save">Save Settings</button>
     </div>
 
     <script src="popup.js"></script>

@@ -9,8 +9,8 @@
     "48": "images/app-icon.png",
     "128": "images/app-icon.png"
   },
-  "permissions": ["identity", "storage"],
-  "host_permissions": ["https://leetcode.com/*"],
+  "permissions": ["identity", "storage", "activeTab"],
+  "host_permissions": ["https://leetcode.com/*", "https://github.com/*"],
   "background": {
     "service_worker": "background.js"
   },

@@ -9,6 +9,7 @@ body {
 
 h1 {
   font-size: 20px;
+  margin-bottom: 10px;
 }
 
 #description {
@@ -75,4 +76,45 @@ button:hover {
 
 button:active {
   background-color: #004094;
+}
+
+/* Settings Form */
+#settings-block {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-top: 20px;
+  display: none; /* Hidden by default */
+}
+
+#settings-block label {
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+#settings-block input {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box; /* Ensure the input fields take full width */
+}
+
+#settings-block button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 15px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  transition: background 0.3s;
+}
+
+#settings-block button:hover {
+  background-color: #218838;
 }

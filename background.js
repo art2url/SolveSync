@@ -1,5 +1,24 @@
+// Listen for the OAuth flow
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'OAUTH_RESULT') {
+    // Save GitHub token and username to local storage
+    const { github_token, github_username } = message.data;
+
+    chrome.storage.local.set(
+      {
+        github_token: github_token,
+        github_username: github_username,
+      },
+      function () {
+        console.log('GitHub authentication data saved to local storage.');
+      }
+    );
+  }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'UPLOAD_CODE') {
+    // Retrieve the GitHub token and username from local storage
     chrome.storage.local.get(
       ['github_token', 'github_username'],
       async (data) => {
@@ -13,9 +32,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         const requestData = {
           message: `Add solution for ${message.problemTitle}`,
-          content: btoa(message.code),
+          content: btoa(message.code), // base64 encode the code
         };
 
+        // Upload the solution to GitHub
         fetch(githubApiUrl, {
           method: 'PUT',
           headers: {
