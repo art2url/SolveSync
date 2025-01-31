@@ -7,15 +7,31 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>SolveSync</h1>
-    <p>Upload your LeetCode solutions to GitHub</p>
+    <!-- Header Section -->
+    <div id="header">
+      <h1>SolveSync</h1>
+      <p id="description">Upload your LeetCode solutions to GitHub</p>
+    </div>
 
+    <!-- Usage Instructions Section -->
+    <div id="usage-info">
+      <p><strong>How to Use:</strong></p>
+      <p>1. Log in with your GitHub account.</p>
+      <p>2. Submit a solution on LeetCode.</p>
+      <p>
+        3. Your solution will be automatically uploaded to your GitHub
+        repository.
+      </p>
+    </div>
+
+    <!-- Login Button -->
+    <button id="github-login">Login with GitHub</button>
+
+    <!-- Status Section -->
     <div id="status-container">
       <span class="status-icon disconnected" id="status-icon"></span>
       <p id="github-username">Not Logged In</p>
     </div>
-
-    <button id="github-login">Login with GitHub</button>
 
     <script src="popup.js"></script>
   </body>

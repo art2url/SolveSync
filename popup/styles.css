@@ -3,18 +3,31 @@ body {
   font-family: Arial, sans-serif;
   text-align: center;
   padding: 20px;
-  background-color: #f9f9f9;
-  width: 300px;
+  background-color: #fff;
+  width: 340px;
 }
 
 h1 {
   font-size: 20px;
-  color: #333;
 }
 
-p {
+#description {
   font-size: 14px;
-  color: #555;
+  margin-top: 10px;
+}
+
+/* Usage Info Box with Border */
+#usage-info {
+  box-shadow: 0px 0px 30px #d1d9de;
+  border-radius: 20px;
+  padding: 26px;
+  margin-top: 30px;
+  font-size: 14px;
+  text-align: left;
+}
+
+#usage-info p {
+  margin: 8px 0;
 }
 
 /* Status Container */
@@ -23,7 +36,7 @@ p {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-top: 6px;
   font-weight: bold;
 }
 
@@ -36,11 +49,11 @@ p {
 
 /* Status Colors */
 .connected {
-  background-color: green;
+  background-color: rgb(40, 166, 40);
 }
 
 .disconnected {
-  background-color: red;
+  background-color: rgb(255, 88, 88);
 }
 
 /* Button Styling */
@@ -48,11 +61,12 @@ button {
   background-color: #007bff;
   color: white;
   border: none;
-  padding: 8px 12px;
+  padding: 12px 20px;
   font-size: 14px;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 10px;
   transition: background 0.3s;
+  margin-top: 30px;
 }
 
 button:hover {
