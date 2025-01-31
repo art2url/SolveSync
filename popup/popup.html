@@ -4,12 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SolveSync</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <h1>SolveSync</h1>
     <p>Upload your LeetCode solutions to GitHub</p>
-    <p>GitHub User: <span id="github-username">Not Logged In</span></p>
+
+    <div id="status-container">
+      <span class="status-icon disconnected" id="status-icon"></span>
+      <p id="github-username">Not Logged In</p>
+    </div>
+
     <button id="github-login">Login with GitHub</button>
+
     <script src="popup.js"></script>
   </body>
 </html>

@@ -8,30 +8,24 @@ document.addEventListener('DOMContentLoaded', async function () {
       chrome.tabs.create({ url: authUrl });
     });
 
-  // Fetch the access token if redirected from GitHub
-  const queryString = window.location.search;
-  const urlParams = new URLSearchParams(queryString);
-  if (urlParams.has('access_token')) {
-    const accessToken = urlParams.get('access_token');
-    const githubUsername = urlParams.get('github_username');
+  // Function to update UI based on login status
+  function updateUI(username) {
+    const usernameElement = document.getElementById('github-username');
+    const statusIcon = document.getElementById('status-icon');
 
-    if (accessToken && githubUsername) {
-      // Store in Chrome storage
-      chrome.storage.local.set(
-        { github_token: accessToken, github_username: githubUsername },
-        () => {
-          console.log('GitHub token stored successfully');
-          document.getElementById('github-username').innerText = githubUsername;
-        }
-      );
+    if (username) {
+      usernameElement.innerText = `Logged in as: ${username}`;
+      statusIcon.classList.remove('disconnected');
+      statusIcon.classList.add('connected');
+    } else {
+      usernameElement.innerText = `Not Logged In`;
+      statusIcon.classList.remove('connected');
+      statusIcon.classList.add('disconnected');
     }
   }
 
   // Check if the user is already logged in
   chrome.storage.local.get(['github_token', 'github_username'], (data) => {
-    if (data.github_username) {
-      document.getElementById('github-username').innerText =
-        data.github_username;
-    }
+    updateUI(data.github_username || null);
   });
 });
