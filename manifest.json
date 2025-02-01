@@ -10,12 +10,16 @@
     "128": "images/app-icon.png"
   },
   "permissions": ["identity", "storage", "activeTab"],
-  "host_permissions": ["https://leetcode.com/*", "https://github.com/*"],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "https://github.com/*",
+    "https://solvesync-backend.onrender.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "./popup/popup.html"
+    "default_popup": "popup/popup.html"
   },
   "oauth2": {
     "client_id": "Ov23lik3RKBt8FYYNzaV",
@@ -23,5 +27,9 @@
   },
   "externally_connectable": {
     "matches": ["*://leetcode.com/*"]
+  },
+  "content_security_policy": {
+    "script-src": "'self'",
+    "object-src": "'self'"
   }
 }
