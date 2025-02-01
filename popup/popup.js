@@ -1,4 +1,41 @@
 document.addEventListener('DOMContentLoaded', function () {
+  // Function to update the UI based on login status
+  function updateLoginStatus() {
+    chrome.storage.local.get(
+      ['github_token', 'github_username'],
+      function (data) {
+        const statusText = document.getElementById('github-username');
+        const statusIcon = document.getElementById('status-icon');
+
+        if (data.github_token && data.github_username) {
+          // User is logged in
+          statusText.innerText = data.github_username;
+          statusIcon.classList.add('connected');
+          statusIcon.classList.remove('disconnected');
+        } else {
+          // User is not logged in
+          statusText.innerText = 'Not Logged In';
+          statusIcon.classList.add('disconnected');
+          statusIcon.classList.remove('connected');
+        }
+      }
+    );
+  }
+
+  // Initial check for stored data on popup load
+  updateLoginStatus();
+
+  // Listen for changes in chrome storage (this is triggered when oauth-callback.html saves data)
+  chrome.storage.onChanged.addListener(function (changes, areaName) {
+    if (
+      areaName === 'local' &&
+      (changes.github_token || changes.github_username)
+    ) {
+      updateLoginStatus(); // Update the UI when the storage changes
+    }
+  });
+
+  // GitHub login button click handler
   const clientId = chrome.runtime.getManifest().oauth2.client_id;
   const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo`;
 
@@ -16,73 +53,40 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
           }
 
-          // Extract the code from the redirect URL
+          // Extract the access token and GitHub username from the redirect URL
           const urlParams = new URL(redirectUrl).searchParams;
-          const code = urlParams.get('code');
-          if (!code) {
-            console.error('OAuth failed: No code received');
-            return;
-          }
+          const accessToken = urlParams.get('access_token');
+          const githubUsername = urlParams.get('github_username');
 
-          // Fetch the tokens using the code
-          fetch('https://solvesync-backend.onrender.com/auth/github', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (!data.access_token || !data.github_username) {
-                console.error('Failed to retrieve access token');
-                return;
-              }
+          if (accessToken && githubUsername) {
+            // Store the data in chrome.storage.local
+            chrome.storage.local.set(
+              {
+                github_token: accessToken,
+                github_username: githubUsername,
+              },
+              function () {
+                if (chrome.runtime.lastError) {
+                  console.error(
+                    'Failed to save to storage:',
+                    chrome.runtime.lastError
+                  );
+                } else {
+                  console.log(
+                    'GitHub authentication data saved to local storage.'
+                  );
 
-              chrome.storage.local.set(
-                {
-                  github_token: data.access_token,
-                  github_username: data.github_username,
-                },
-                () => {
-                  if (chrome.runtime.lastError) {
-                    console.error(
-                      'Failed to save to storage:',
-                      chrome.runtime.lastError
-                    );
-                  } else {
-                    document.getElementById('github-username').innerText =
-                      data.github_username;
-                    document
-                      .getElementById('status-icon')
-                      .classList.add('connected');
-                    document
-                      .getElementById('status-icon')
-                      .classList.remove('disconnected');
-                  }
+                  // Add a small delay before updating the UI
+                  setTimeout(function () {
+                    // The storage change event will trigger and update the UI
+                  }, 1000); // 1-second delay
                 }
-              );
-            })
-            .catch((error) => {
-              console.error('OAuth failed:', error);
-            });
+              }
+            );
+          }
         }
       );
     });
-
-  // Initial check for stored login data
-  chrome.storage.local.get(['github_token', 'github_username'], (data) => {
-    if (data.github_username) {
-      document.getElementById('github-username').innerText =
-        data.github_username;
-      document.getElementById('status-icon').classList.add('connected');
-      document.getElementById('status-icon').classList.remove('disconnected');
-    } else {
-      document.getElementById('github-username').innerText = 'Not Logged In';
-      document.getElementById('status-icon').classList.add('disconnected');
-      document.getElementById('status-icon').classList.remove('connected');
-    }
-  });
 
   // Save repo and branch settings to chrome storage
   document
