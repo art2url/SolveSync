@@ -31,5 +31,12 @@
   "content_security_policy": {
     "script-src": "'self'",
     "object-src": "'self'"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["scripts/leetcode.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
