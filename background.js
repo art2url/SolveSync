@@ -1,96 +1,91 @@
-// Listen for the OAuth result and store in storage
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'OAUTH_RESULT') {
-    console.log('Received OAUTH_RESULT in background.js:', message.data);
+  if (message.action === 'start_oauth') {
+    const redirectUri = chrome.identity.getRedirectURL();
+    const clientId = chrome.runtime.getManifest().oauth2.client_id;
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=repo`;
+    console.log('Background: Launching OAuth flow with URL:', authUrl);
 
-    const { github_token, github_username } = message.data;
-
-    chrome.storage.local.set(
-      {
-        github_token: github_token,
-        github_username: github_username,
-      },
-      function () {
+    chrome.identity.launchWebAuthFlow(
+      { url: authUrl, interactive: true },
+      function (redirectUrl) {
         if (chrome.runtime.lastError) {
           console.error(
-            'Error saving to local storage:',
+            'Background: OAuth launch error:',
             chrome.runtime.lastError
           );
-        } else {
-          console.log('GitHub authentication data saved to local storage.');
-        }
-      }
-    );
-  }
-});
-
-// Handle the upload code action
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'UPLOAD_CODE') {
-    console.log('Received UPLOAD_CODE message:', message);
-
-    // Retrieve the GitHub token and username from local storage
-    chrome.storage.local.get(
-      ['github_token', 'github_username'],
-      async (data) => {
-        console.log('Retrieved data from storage in background.js:', data); // Log the data
-
-        if (!data.github_token || !data.github_username) {
-          console.error('GitHub authentication required');
-          sendResponse({
-            success: false,
-            error: 'GitHub authentication required',
-          });
+          sendResponse({ error: chrome.runtime.lastError });
           return;
         }
 
-        const { problemTitle, code } = message;
-        if (!problemTitle || !code) {
-          console.error('Problem title or code missing');
-          sendResponse({
-            success: false,
-            error: 'Problem title or code missing',
-          });
-          return;
-        }
-
-        const filePath = `leetcode/${problemTitle}.js`;
-        const githubApiUrl = `https://api.github.com/repos/${data.github_username}/SolveSync/contents/${filePath}`;
-
-        const requestData = {
-          message: `Add solution for ${problemTitle}`,
-          content: btoa(code), // base64 encode the code
-        };
-
-        // Log the request data before sending the API request
         console.log(
-          'Preparing to upload to GitHub:',
-          githubApiUrl,
-          requestData
+          'Background: OAuth flow returned redirectUrl:',
+          redirectUrl
         );
+        if (redirectUrl) {
+          try {
+            const urlObj = new URL(redirectUrl);
+            const code = urlObj.searchParams.get('code');
+            if (!code) {
+              sendResponse({
+                error: 'Authorization code not found in redirect URL.',
+              });
+              return;
+            }
+            console.log('Background: Authorization code:', code);
 
-        // Upload the solution to GitHub
-        fetch(githubApiUrl, {
-          method: 'PUT',
-          headers: {
-            Authorization: `token ${data.github_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            console.log('Uploaded successfully:', data);
-            sendResponse({ success: true, data });
-          })
-          .catch((err) => {
-            console.error('Upload Error:', err);
-            sendResponse({ success: false, error: err });
-          });
-
-        // Indicate that the response will be sent asynchronously
-        return true;
+            // Exchange the authorization code for token & username via backend.
+            fetch('https://solvesync-backend.onrender.com/auth/github', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: code }),
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(
+                    `Backend responded with status ${response.status}`
+                  );
+                }
+                return response.json();
+              })
+              .then((data) => {
+                console.log('Background: Data received from backend:', data);
+                if (data.access_token && data.github_username) {
+                  // Save credentials to chrome.storage.
+                  chrome.storage.local.set(
+                    {
+                      github_token: data.access_token,
+                      github_username: data.github_username,
+                    },
+                    () => {
+                      console.log('Background: Credentials saved to storage.');
+                      sendResponse({ success: true, data: data });
+                    }
+                  );
+                } else {
+                  sendResponse({
+                    error: 'Invalid data received from backend.',
+                  });
+                }
+              })
+              .catch((error) => {
+                console.error(
+                  'Background: Error during token exchange:',
+                  error
+                );
+                sendResponse({ error: error.toString() });
+              });
+          } catch (err) {
+            console.error('Background: Error processing redirectUrl:', err);
+            sendResponse({ error: err.toString() });
+          }
+        } else {
+          sendResponse({ error: 'redirectUrl is undefined.' });
+        }
       }
     );
+    // Indicate that the response will be sent asynchronously.
+    return true;
   }
 });
