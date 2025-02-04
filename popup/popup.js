@@ -1,126 +1,69 @@
 document.addEventListener('DOMContentLoaded', function () {
-  // Function to update the UI based on login status
+  // Function to update UI based on stored credentials.
   function updateLoginStatus() {
-    console.log('Updating login status...');
-
     chrome.storage.local.get(
       ['github_token', 'github_username'],
       function (data) {
-        console.log('Retrieved data from storage:', data);
-
         const statusText = document.getElementById('github-username');
         const statusIcon = document.getElementById('status-icon');
-        const loginButton = document.getElementById('github-login'); // Declare loginButton inside this scope
+        const loginButton = document.getElementById('github-login');
         const clearDataButton = document.getElementById('clear-data');
 
         if (data.github_token && data.github_username) {
           statusText.innerText = data.github_username;
           statusIcon.classList.add('connected');
           statusIcon.classList.remove('disconnected');
-          loginButton.style.display = 'none'; // Hide "Login with GitHub"
-          clearDataButton.style.display = 'inline-block'; // Show "Clear Data"
+          loginButton.style.display = 'none';
+          clearDataButton.style.display = 'inline-block';
         } else {
           statusText.innerText = 'Not Logged In';
           statusIcon.classList.add('disconnected');
           statusIcon.classList.remove('connected');
-          loginButton.style.display = 'inline-block'; // Show "Login with GitHub"
-          clearDataButton.style.display = 'none'; // Hide "Clear Data"
+          loginButton.style.display = 'inline-block';
+          clearDataButton.style.display = 'none';
         }
       }
     );
   }
 
-  // Initial check for stored data on popup load
+  // Initial UI update on popup load.
   updateLoginStatus();
 
-  chrome.storage.onChanged.addListener(function (changes, areaName) {
-    if (
-      areaName === 'local' &&
-      (changes.github_token || changes.github_username)
-    ) {
-      updateLoginStatus();
-    }
-  });
-
-  // GitHub login button click handler
-  const clientId = chrome.runtime.getManifest().oauth2.client_id;
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo`;
-
+  // Handler for "Login with GitHub" button.
   document
     .getElementById('github-login')
     .addEventListener('click', function () {
-      console.log('Login with GitHub button clicked');
-
-      // Disable the login button to avoid multiple clicks
       const loginButton = document.getElementById('github-login');
-      loginButton.innerText = 'Logging in...'; // Update button text
-      loginButton.disabled = true; // Disable the login button
+      loginButton.innerText = 'Logging in...';
+      loginButton.disabled = true;
 
-      // Start OAuth flow
-      chrome.identity.launchWebAuthFlow(
-        {
-          url: authUrl,
-          interactive: true,
-        },
-        function (redirectUrl) {
-          console.log('OAuth flow completed. Redirect URL:', redirectUrl);
-
-          if (chrome.runtime.lastError || !redirectUrl) {
-            console.error('OAuth failed:', chrome.runtime.lastError);
-            loginButton.innerText = 'Login with GitHub'; // Restore original button text
-            loginButton.disabled = false; // Re-enable the login button
-            return;
+      // Send message to background to start OAuth flow.
+      chrome.runtime.sendMessage(
+        { action: 'start_oauth' },
+        function (response) {
+          if (response && response.success) {
+            console.log('Popup: OAuth flow succeeded:', response.data);
+          } else {
+            console.error(
+              'Popup: OAuth flow error:',
+              response && response.error
+            );
           }
-
-          const urlParams = new URL(redirectUrl).searchParams;
-          const code = urlParams.get('code');
-          console.log('Authorization code received:', code);
-
-          if (code) {
-            console.log('Sending code to backend for token exchange...');
-            fetch('https://solvesync-backend.onrender.com/auth/github', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code }),
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                console.log('Data received from backend:', data);
-                if (data.access_token && data.github_username) {
-                  chrome.storage.local.set(
-                    {
-                      github_token: data.access_token,
-                      github_username: data.github_username,
-                    },
-                    function () {
-                      console.log(
-                        'GitHub authentication data saved to local storage.'
-                      );
-                      updateLoginStatus(); // Refresh UI after credentials are saved
-                      loginButton.innerText = 'Login with GitHub'; // Restore the original button text
-                      loginButton.disabled = false; // Re-enable the login button
-                    }
-                  );
-                }
-              })
-              .catch((error) => {
-                console.error('Error fetching access token:', error);
-                loginButton.innerText = 'Login with GitHub'; // Restore the original button text
-                loginButton.disabled = false; // Re-enable the login button
-              });
-          }
+          // In any case, update the UI and re-enable the button.
+          updateLoginStatus();
+          loginButton.innerText = 'Login with GitHub';
+          loginButton.disabled = false;
         }
       );
     });
 
-  // "Clear Data" button click handler
+  // Handler for "Clear Data" button.
   document.getElementById('clear-data').addEventListener('click', function () {
-    console.log('Clear Data button clicked');
     chrome.storage.local.remove(
       ['github_token', 'github_username'],
       function () {
-        console.log('GitHub authentication data cleared from local storage.');
-        updateLoginStatus(); // Refresh UI after clearing data
+        console.log('Popup: Credentials cleared from storage.');
+        updateLoginStatus();
       }
     );
   });
