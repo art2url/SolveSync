@@ -16,18 +16,25 @@
       <p id="github-username">Not Logged In</p>
     </div>
 
-    <!-- Buttons -->
+    <!-- Primary buttons -->
     <button id="github-login">Login with GitHub</button>
-    <!-- Initially hidden -->
     <button id="clear-data" style="display: none">Clear Data</button>
-    <!-- Initially hidden -->
 
-    <!-- Settings Button and Settings Form -->
+    <!-- Settings Button (always visible) -->
     <button id="settings-button">Settings</button>
-    <div id="settings-block" style="display: none">
-      <input type="text" id="repo" placeholder="GitHub Repository" />
-      <input type="text" id="branch" placeholder="Branch" />
+
+    <!-- Settings Form (initially hidden) -->
+    <div id="settings-block">
+      <div>
+        <label for="repo">Repository (username/repository):</label>
+        <input type="text" id="repo" placeholder="username/repository" />
+      </div>
+      <div>
+        <label for="branch">Branch (e.g., main):</label>
+        <input type="text" id="branch" placeholder="e.g., main" />
+      </div>
       <button id="settings-save">Save Settings</button>
+      <div id="settings-confirmation"></div>
     </div>
 
     <script src="popup.js"></script>
