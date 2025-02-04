@@ -84,24 +84,30 @@ button:active {
   padding: 15px;
   margin-top: 20px;
   display: none; /* Hidden by default */
+  text-align: left;
 }
 
+/* Style for labels within the settings form */
 #settings-block label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: bold;
-  margin-top: 10px;
+  margin-bottom: 5px;
+  display: block;
+  text-align: left;
 }
 
+/* Style for input fields in the settings form */
 #settings-block input {
   width: 100%;
   padding: 8px;
   font-size: 14px;
-  margin-top: 5px;
+  margin-bottom: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
-  box-sizing: border-box; /* Ensure the input fields take full width */
+  box-sizing: border-box;
 }
 
+/* Style for the settings Save button */
 #settings-block button {
   width: 100%;
   padding: 10px;
@@ -117,4 +123,12 @@ button:active {
 
 #settings-block button:hover {
   background-color: #218838;
+}
+
+/* Confirmation message styling */
+#settings-confirmation {
+  display: none;
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
 }
