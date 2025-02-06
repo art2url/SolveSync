@@ -53,6 +53,7 @@
       description.length
     );
 
+    // TODO: fix hook, while this section doesn't retrieve any data:
     // Language: capture the language from the button with classes "rounded inline-flex"
     const languageElem = document.querySelector('button.rounded.inline-flex');
     // The language text might include extra content (like the chevron icon), so we may need to clean it.
@@ -66,6 +67,7 @@
       language
     );
 
+    // TODO: fix hook, while this section doesn't retrieve any data:
     // Code: capture the solution code from the Monaco editor container
     const codeElem = document.querySelector(
       'div.view-lines.monaco-mouse-cursor-text'
