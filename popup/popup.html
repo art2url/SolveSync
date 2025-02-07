@@ -4,37 +4,66 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SolveSync</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Open+Sans:wght@400;600&display=swap"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>SolveSync</h1>
-    <p>Upload your LeetCode solutions to GitHub</p>
-
-    <!-- Status and login -->
-    <div id="status-container">
-      <span class="status-icon disconnected" id="status-icon"></span>
-      <p id="github-username">Not Logged In</p>
+    <div>
+      <div id="mascot" class="mascot offline"></div>
+      <div class="bg-image"></div>
     </div>
 
-    <!-- Primary buttons -->
-    <button id="github-login">Login with GitHub</button>
-    <button id="clear-data" style="display: none">Clear Data</button>
+    <div class="container">
+      <header class="header-block">
+        <h1>SolveSync</h1>
+        <hr class="line-divider" />
+        <p class="slogan">Upload your LeetCode solutions in GitHub</p>
+      </header>
 
-    <!-- Settings Button (always visible) -->
-    <button id="settings-button">Settings</button>
+      <section class="status-row">
+        <span id="status-icon" class="status-icon disconnected"></span>
+        <p id="github-username" class="status-text disconnected">
+          You’re not logged in
+        </p>
+      </section>
 
-    <!-- Settings Form (initially hidden) -->
-    <div id="settings-block">
-      <div>
-        <label for="repo">Repository (username/repository):</label>
-        <input type="text" id="repo" placeholder="username/repository" />
-      </div>
-      <div>
-        <label for="branch">Branch (e.g., main):</label>
-        <input type="text" id="branch" placeholder="e.g., main" />
-      </div>
-      <button id="settings-save">Save Settings</button>
-      <div id="settings-confirmation"></div>
+      <section class="info-row">
+        <img src="../images/info.png" alt="Info Icon" class="info-icon" />
+        <p class="text-info-block">
+          Set up your <span class="semibold">Settings</span> and
+          <span class="semibold">Login with GitHub</span>. Then, you’re ready to
+          solve LeetCode problems!
+        </p>
+      </section>
+
+      <section class="button-row">
+        <button id="github-login" class="button-standart">
+          Login with GitHub
+        </button>
+        <button id="clear-data" class="button-standart" style="display: none">
+          Clear Data
+        </button>
+        <button id="settings-button" class="button-settings">Settings</button>
+      </section>
+
+      <section id="settings-block">
+        <div class="form-row">
+          <label id="repo-label" for="repo"
+            >Repository (username/repository):</label
+          >
+          <input type="text" id="repo" placeholder="username/repository" />
+        </div>
+
+        <div class="form-row">
+          <label id="branch-label" for="branch">Branch (e.g., main):</label>
+          <input type="text" id="branch" placeholder="e.g., main" />
+        </div>
+        <button id="settings-save">Save Settings</button>
+        <div id="settings-confirmation"></div>
+      </section>
     </div>
 
     <script src="popup.js"></script>
