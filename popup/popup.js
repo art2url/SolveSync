@@ -4,21 +4,33 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.storage.local.get(
       ['github_token', 'github_username'],
       function (data) {
-        const statusText = document.getElementById('github-username');
+        const statusText = document.getElementById(
+          'github-username',
+          'status-text'
+        );
         const statusIcon = document.getElementById('status-icon');
         const loginButton = document.getElementById('github-login');
         const clearDataButton = document.getElementById('clear-data');
+        const mascotEl = document.getElementById('mascot');
 
         if (data.github_token && data.github_username) {
           statusText.innerText = data.github_username;
           statusIcon.classList.add('connected');
           statusIcon.classList.remove('disconnected');
+          statusText.classList.add('connected');
+          statusText.classList.remove('disconnected');
           loginButton.style.display = 'none';
           clearDataButton.style.display = 'inline-block';
+          mascotEl.classList.remove('offline');
+          mascotEl.classList.add('online');
         } else {
-          statusText.innerText = 'Not Logged In';
+          statusText.innerText = `You’re not logged in`;
           statusIcon.classList.add('disconnected');
           statusIcon.classList.remove('connected');
+          statusText.classList.add('disconnected');
+          statusText.classList.remove('connected');
+          mascotEl.classList.remove('online');
+          mascotEl.classList.add('offline');
           loginButton.style.display = 'inline-block';
           clearDataButton.style.display = 'none';
         }
@@ -87,11 +99,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const confirmation = document.getElementById('settings-confirmation');
     if (!confirmation) return;
     confirmation.innerText = message;
-    confirmation.style.color = isError ? 'red' : 'green';
+    confirmation.style.color = isError ? 'RGB(235,87,87)' : 'RGB(39,174,96)';
     confirmation.style.display = 'block';
     setTimeout(() => {
       confirmation.style.display = 'none';
-    }, 3000);
+    }, 10000);
   }
 
   // Get references for settings input elements.
@@ -100,7 +112,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Auto-save: store the current value into chrome.storage as the user types.
   if (repoInput) {
+    repoInput.addEventListener('click', function () {
+      repoInput.classList.remove('alert');
+    });
     repoInput.addEventListener('input', function () {
+      repoInput.classList.remove('alert');
       const repo = repoInput.value.trim();
       chrome.storage.local.set({ repo: repo }, function () {
         console.log('Auto-saved repo:', repo);
@@ -108,7 +124,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
   if (branchInput) {
+    branchInput.addEventListener('click', function () {
+      branchInput.classList.remove('alert');
+    });
     branchInput.addEventListener('input', function () {
+      branchInput.classList.remove('alert');
       const branch = branchInput.value.trim();
       chrome.storage.local.set({ branch: branch }, function () {
         console.log('Auto-saved branch:', branch);
@@ -125,24 +145,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Validate that both fields are not empty.
       if (!repo || !branch) {
-        showConfirmation(
-          'Error: Both repository and branch fields are required.',
-          true
-        );
+        branchInput.classList.add('alert');
+        repoInput.classList.add('alert');
+        showConfirmation('Both fields are required.', true);
         return;
       }
 
       // Validate repository format: must be "username/repository".
       const repoRegex = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
       if (!repoRegex.test(repo)) {
-        showConfirmation(
-          'Error: Repository must be in the format "username/repository".',
-          true
-        );
+        repoInput.classList.add('alert');
+        showConfirmation('Use format "username/repository".', true);
         return;
       }
 
-      // Since values are auto-saved, just show confirmation.
+      // Confirmation.
       showConfirmation('Settings saved successfully!');
     });
   } else {
@@ -154,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (settingsButton) {
     settingsButton.addEventListener('click', function () {
       toggleSettingsForm();
+      settingsButton.classList.toggle('activated');
     });
   }
 });
