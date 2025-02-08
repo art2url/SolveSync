@@ -1,4 +1,4 @@
-# SolveSync Chrome Extension (Currently in Development)
+# SolveSync Chrome Extension (Currently in Testing)
 
 SolveSync is a Chrome extension that automates the process of uploading your LeetCode solutions directly to a GitHub repository.
 
