@@ -151,14 +151,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      // Validate repository format: must be "username/repository".
-      const repoRegex = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
-      if (!repoRegex.test(repo)) {
-        repoInput.classList.add('alert');
-        showConfirmation('Use format "username/repository".', true);
-        return;
-      }
-
       // Confirmation.
       showConfirmation('Settings saved successfully!');
     });
