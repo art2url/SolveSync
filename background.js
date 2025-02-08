@@ -85,6 +85,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       }
     );
+
     // Indicate that the response will be sent asynchronously.
     return true;
   }
@@ -159,8 +160,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }; // TODO: add more languages
         const fileExt = extensionMapping[language.toLowerCase()] || '.txt';
 
-        const solutionFilePath = `${diffFolder}/${slugTitle}${fileExt}`;
-        const readmeFilePath = `${diffFolder}/readme.md`;
+        const problemFolderPath = `${diffFolder}/${slugTitle}`;
+        const solutionFilePath = `${problemFolderPath}/${slugTitle}${fileExt}`;
+        const readmeFilePath = `${problemFolderPath}/readme.md`;
         const commitMessage = `Add solution for ${problemTitle}`;
 
         console.log('Determined file paths:', solutionFilePath, readmeFilePath);
@@ -190,6 +192,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         function commitFile(filePath, content, callback) {
           const url = githubApiUrlBase + filePath;
           console.log(`Attempting GET for file: ${filePath}`);
+
           // Check if file exists.
           fetch(url + `?ref=${data.branch}`, {
             headers: {
