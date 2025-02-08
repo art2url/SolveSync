@@ -1,6 +1,12 @@
 (function () {
   console.log('LeetCode content script started.');
 
+  // Run the script only on problem pages
+  if (!window.location.href.startsWith('https://leetcode.com/problems/')) {
+    console.log('Not a problem page. Script will not run.');
+    return;
+  }
+
   // Utility: Send captured problem data to the background script.
   function sendSolutionData(solutionData) {
     console.log('Sending solution data to background:', solutionData);
@@ -93,39 +99,68 @@
     );
     const description = descriptionElem ? descriptionElem.innerText.trim() : '';
 
-    return { problemTitle, difficulty, description };
+    const language = findProgrammingLanguage();
+
+    return { problemTitle, difficulty, description, language };
   }
 
   // Capture dynamic data after delay
   function captureDynamicData(callback) {
-    setTimeout(() => {
-      const language = findProgrammingLanguage();
-      const codeElem = document.querySelector(
-        'div.view-lines.monaco-mouse-cursor-text'
-      );
-      const code = codeElem ? codeElem.innerText : '';
+    const codeElem = document.querySelector(
+      'div.view-lines.monaco-mouse-cursor-text'
+    );
+    const code = codeElem ? codeElem.innerText : '';
 
-      callback({ language, code });
-    }, 4000); // 2-second delay for dynamic content
+    callback({ code });
   }
 
   // Main function to capture and send data
   function captureAndSendData() {
     const staticData = captureStaticData();
 
-    captureDynamicData((dynamicData) => {
-      const solutionData = { ...staticData, ...dynamicData };
+    // Attach click listener to the submit button
+    const submitButton = document.querySelector(
+      'button[data-e2e-locator="console-submit-button"]'
+    );
 
-      if (
-        solutionData.problemTitle !== 'Unknown Problem' ||
-        solutionData.description.length > 0 ||
-        solutionData.code.length > 0
-      ) {
-        sendSolutionData(solutionData);
-      } else {
-        console.log('Data incomplete; will retry...');
-      }
-    });
+    if (submitButton) {
+      console.log('Submit button found, adding click listener.');
+      submitButton.addEventListener('click', () => {
+        console.log('Submit button clicked. Waiting for "Accepted" status.');
+
+        const observer = new MutationObserver((mutations, observerInstance) => {
+          const statusElem = document.querySelector(
+            'span[data-e2e-locator="submission-result"]'
+          );
+
+          if (statusElem && statusElem.textContent.trim() === 'Accepted') {
+            console.log(
+              'Submission Accepted. Capturing code and sending data.'
+            );
+
+            captureDynamicData((dynamicData) => {
+              const solutionData = { ...staticData, ...dynamicData };
+
+              if (
+                solutionData.problemTitle !== 'Unknown Problem' ||
+                solutionData.description.length > 0 ||
+                solutionData.code.length > 0
+              ) {
+                sendSolutionData(solutionData);
+              } else {
+                console.log('Data incomplete; will retry...');
+              }
+            });
+
+            observerInstance.disconnect(); // Stop observing after capturing
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
+    } else {
+      console.log('Submit button not found.');
+    }
   }
 
   // Initial capture attempt
@@ -134,10 +169,10 @@
   // Set up MutationObserver with debounce to capture changes
   const observer = new MutationObserver(
     debounce(() => {
-      console.log('Detected DOM changes, capturing updated data...');
+      console.log('Detected DOM changes, checking for submit button...');
       captureAndSendData();
     }, 3000)
-  ); // Debounce for 3 second
+  );
 
   observer.observe(document.body, { childList: true, subtree: true });
 
