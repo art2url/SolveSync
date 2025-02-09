@@ -176,8 +176,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         let encodedSolution, encodedReadme;
         try {
-          encodedSolution = btoa(code);
-          encodedReadme = btoa(description);
+          encodedSolution = btoa(unescape(encodeURIComponent(code)));
+          const readmeContent = `# ${problemTitle}\n\n${description}`;
+          encodedReadme = btoa(unescape(encodeURIComponent(readmeContent)));
         } catch (e) {
           console.error('Error encoding content with btoa():', e);
           sendResponse({
