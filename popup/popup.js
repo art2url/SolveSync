@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!repo || !branch) {
         branchInput.classList.add('alert');
         repoInput.classList.add('alert');
-        showConfirmation('Both fields are required.', true);
+        showConfirmation('Both fields are required', true);
         return;
       }
 
