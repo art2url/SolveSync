@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "SolveSync",
   "version": "1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs5E+MAg9biZqlEMfSs0GXUaqwlVVPbLTQSfedXpt6zBZugI4RhhbhrIbjbQeOTBUywjpJe0XenGWiGg2lolOEmr/MSFwqgF/SjSTEiREBCXUF9mOcrNPAlNm8n3EnXk5m9JNblCxwBXLDrVlnJodJCGHjts/50cu03NJXL+UdO2r9CMdymSYrQ1Xs7Mhfo2ijc6vpaGx18cD7z0cgxomYZUrx8ld96cn1gZUzet+JJvBhY/aVbHtuTnsIG2itfqSQ1HJ2svSZ6zsmizlp4hCc1dhj2VprJHMaSaiMWVKM4N5C0/IFiAKs9kKp1zJn7d6d06g/SZILU73V0BPsT6ZSwIDAQAB",
   "description": "Automate Solution Uploads to GitHub.",
   "icons": {
     "16": "images/app-icon.png",
