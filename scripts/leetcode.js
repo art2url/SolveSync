@@ -1,15 +1,11 @@
 (function () {
-  console.log('LeetCode content script started.');
-
   // Run the script only on problem pages
   if (!window.location.href.startsWith('https://leetcode.com/problems/')) {
-    console.log('Not a problem page. Script will not run.');
     return;
   }
 
   // Utility: Send captured problem data to the background script.
   function sendSolutionData(solutionData) {
-    console.log('Sending solution data to background:', solutionData);
     chrome.runtime.sendMessage(
       { action: 'commit_solution', ...solutionData },
       function (response) {
@@ -19,12 +15,11 @@
             chrome.runtime.lastError
           );
         }
-        console.log('Response from background:', response);
       }
     );
   }
 
-  // List of supported languages
+  // List of supported languages.
   const supportedLanguages = [
     'c',
     'c#',
@@ -61,7 +56,7 @@
   function findProgrammingLanguage() {
     const allElements = document.querySelectorAll('button, div, span');
     for (const element of allElements) {
-      const text = element.textContent.trim().toLowerCase(); // Normalize case
+      const text = element.textContent.trim().toLowerCase();
       if (supportedLanguages.includes(text)) {
         return text;
       }
@@ -69,7 +64,7 @@
     return 'unknown';
   }
 
-  // Debounce utility to limit rapid calls
+  // Debounce utility to limit rapid calls.
   function debounce(func, delay) {
     let timer;
     return function (...args) {
@@ -78,7 +73,7 @@
     };
   }
 
-  // Capture static data immediately
+  // Capture static data immediately.
   function captureStaticData() {
     const titleElem = document.querySelector(
       'a.truncate.cursor-text[href^="/problems/"]'
@@ -104,7 +99,7 @@
     return { problemTitle, difficulty, description, language };
   }
 
-  // Capture dynamic data after delay
+  // Capture dynamic data after delay.
   function captureDynamicData(callback) {
     const codeElem = document.querySelector(
       'div.view-lines.monaco-mouse-cursor-text'
@@ -114,30 +109,23 @@
     callback({ code });
   }
 
-  // Main function to capture and send data
+  // Main function to capture and send data.
   function captureAndSendData() {
     const staticData = captureStaticData();
 
-    // Attach click listener to the submit button
+    // Attach click listener to the submit button.
     const submitButton = document.querySelector(
       'button[data-e2e-locator="console-submit-button"]'
     );
 
     if (submitButton) {
-      console.log('Submit button found, adding click listener.');
       submitButton.addEventListener('click', () => {
-        console.log('Submit button clicked. Waiting for "Accepted" status.');
-
         const observer = new MutationObserver((mutations, observerInstance) => {
           const statusElem = document.querySelector(
             'span[data-e2e-locator="submission-result"]'
           );
 
           if (statusElem && statusElem.textContent.trim() === 'Accepted') {
-            console.log(
-              'Submission Accepted. Capturing code and sending data.'
-            );
-
             captureDynamicData((dynamicData) => {
               const solutionData = { ...staticData, ...dynamicData };
 
@@ -147,34 +135,27 @@
                 solutionData.code.length > 0
               ) {
                 sendSolutionData(solutionData);
-              } else {
-                console.log('Data incomplete; will retry...');
               }
             });
 
-            observerInstance.disconnect(); // Stop observing after capturing
+            observerInstance.disconnect(); // Stop observing after capturing.
           }
         });
 
         observer.observe(document.body, { childList: true, subtree: true });
       });
-    } else {
-      console.log('Submit button not found.');
     }
   }
 
-  // Initial capture attempt
+  // Initial capture attempt.
   captureAndSendData();
 
-  // Set up MutationObserver with debounce to capture changes
+  // Set up MutationObserver with debounce to capture changes.
   const observer = new MutationObserver(
     debounce(() => {
-      console.log('Detected DOM changes, checking for submit button...');
       captureAndSendData();
     }, 3000)
   );
 
   observer.observe(document.body, { childList: true, subtree: true });
-
-  console.log('LeetCode content script loaded and observing DOM changes.');
 })();

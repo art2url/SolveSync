@@ -53,12 +53,9 @@ document.addEventListener('DOMContentLoaded', function () {
         { action: 'start_oauth' },
         function (response) {
           if (response && response.success) {
-            console.log('Popup: OAuth flow succeeded:', response.data);
+            // OAuth flow succeeded
           } else {
-            console.error(
-              'Popup: OAuth flow error:',
-              response && response.error
-            );
+            // OAuth flow error
           }
           updateLoginStatus();
           loginBtn.innerText = 'Login with GitHub';
@@ -75,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.storage.local.remove(
         ['github_token', 'github_username'],
         function () {
-          console.log('Popup: Credentials cleared from storage.');
           updateLoginStatus();
         }
       );
@@ -85,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // --- SETTINGS SECTION ---
   // Pre-populate settings inputs with stored values when the popup loads.
   chrome.storage.local.get(['repo', 'branch'], function (data) {
-    console.log('Prepopulating settings with:', data);
     if (data.repo) {
       document.getElementById('repo').value = data.repo;
     }
@@ -118,9 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
     repoInput.addEventListener('input', function () {
       repoInput.classList.remove('alert');
       const repo = repoInput.value.trim();
-      chrome.storage.local.set({ repo: repo }, function () {
-        console.log('Auto-saved repo:', repo);
-      });
+      chrome.storage.local.set({ repo: repo });
     });
   }
   if (branchInput) {
@@ -130,9 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
     branchInput.addEventListener('input', function () {
       branchInput.classList.remove('alert');
       const branch = branchInput.value.trim();
-      chrome.storage.local.set({ branch: branch }, function () {
-        console.log('Auto-saved branch:', branch);
-      });
+      chrome.storage.local.set({ branch: branch });
     });
   }
 
@@ -154,8 +145,6 @@ document.addEventListener('DOMContentLoaded', function () {
       // Confirmation.
       showConfirmation('Settings saved successfully!');
     });
-  } else {
-    console.error('settings-save button not found in the DOM.');
   }
 
   // Handler for "Settings" button to toggle the settings form.

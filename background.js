@@ -5,24 +5,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&scope=repo`;
-    console.log('Background: Launching OAuth flow with URL:', authUrl);
 
     chrome.identity.launchWebAuthFlow(
       { url: authUrl, interactive: true },
       function (redirectUrl) {
         if (chrome.runtime.lastError) {
-          console.error(
-            'Background: OAuth launch error:',
-            chrome.runtime.lastError
-          );
           sendResponse({ error: chrome.runtime.lastError });
           return;
         }
 
-        console.log(
-          'Background: OAuth flow returned redirectUrl:',
-          redirectUrl
-        );
         if (redirectUrl) {
           try {
             const urlObj = new URL(redirectUrl);
@@ -33,7 +24,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               });
               return;
             }
-            console.log('Background: Authorization code:', code);
 
             // Exchange the authorization code for token & username via backend.
             fetch('https://solvesync-backend.onrender.com/auth/github', {
@@ -50,7 +40,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return response.json();
               })
               .then((data) => {
-                console.log('Background: Data received from backend:', data);
                 if (data.access_token && data.github_username) {
                   // Save credentials to chrome.storage.
                   chrome.storage.local.set(
@@ -59,7 +48,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       github_username: data.github_username,
                     },
                     () => {
-                      console.log('Background: Credentials saved to storage.');
                       sendResponse({ success: true, data: data });
                     }
                   );
@@ -70,14 +58,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
               })
               .catch((error) => {
-                console.error(
-                  'Background: Error during token exchange:',
-                  error
-                );
                 sendResponse({ error: error.toString() });
               });
           } catch (err) {
-            console.error('Background: Error processing redirectUrl:', err);
             sendResponse({ error: err.toString() });
           }
         } else {
@@ -93,20 +76,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'commit_solution') {
-    console.log('Background received commit_solution message:', message);
     const { problemTitle, difficulty, language, code, description } = message;
 
     chrome.storage.local.get(
       ['repo', 'branch', 'github_token', 'github_username'],
       function (data) {
-        console.log('Background retrieved storage data:', data);
         if (
           !data.repo ||
           !data.branch ||
           !data.github_token ||
           !data.github_username
         ) {
-          console.error('Missing repository settings or GitHub credentials.');
           sendResponse({
             success: false,
             error: 'Missing repository settings or GitHub credentials.',
@@ -157,7 +137,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           bash: '.sh',
           swift: '.swift',
           typescript: '.ts',
-        }; // TODO: add more languages
+        }; // TODO: add more languages.
         const fileExt = extensionMapping[language.toLowerCase()] || '.txt';
 
         const problemFolderPath = `${diffFolder}/${slugTitle}`;
@@ -165,22 +145,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const readmeFilePath = `${problemFolderPath}/readme.md`;
         const commitMessage = `Add solution for ${problemTitle}`;
 
-        console.log('Determined file paths:', solutionFilePath, readmeFilePath);
-        console.log('Commit message:', commitMessage);
-        console.log(
-          'Content lengths - code:',
-          code.length,
-          ', description:',
-          description.length
-        );
-
         let encodedSolution, encodedReadme;
         try {
           encodedSolution = btoa(unescape(encodeURIComponent(code)));
           const readmeContent = `# ${problemTitle}\n\n${description}`;
           encodedReadme = btoa(unescape(encodeURIComponent(readmeContent)));
         } catch (e) {
-          console.error('Error encoding content with btoa():', e);
           sendResponse({
             success: false,
             error: 'Failed to encode solution or description.',
@@ -192,7 +162,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         function commitFile(filePath, content, callback) {
           const url = githubApiUrlBase + filePath;
-          console.log(`Attempting GET for file: ${filePath}`);
 
           // Check if file exists.
           fetch(url + `?ref=${data.branch}`, {
@@ -202,7 +171,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
           })
             .then((res) => {
-              console.log(`GET ${filePath} response status: ${res.status}`);
               if (res.status === 200) {
                 return res.json();
               } else {
@@ -210,13 +178,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
             })
             .then((fileData) => {
-              if (fileData) {
-                console.log(`File ${filePath} exists, SHA: ${fileData.sha}`);
-              } else {
-                console.log(
-                  `File ${filePath} does not exist. It will be created.`
-                );
-              }
               const body = {
                 message: commitMessage,
                 content: content,
@@ -225,7 +186,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               if (fileData && fileData.sha) {
                 body.sha = fileData.sha;
               }
-              console.log(`PUT body for ${filePath}:`, body);
               return fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -236,16 +196,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 body: JSON.stringify(body),
               });
             })
-            .then((res) => {
-              console.log(`PUT ${filePath} response status: ${res.status}`);
-              return res.json();
-            })
+            .then((res) => res.json())
             .then((result) => {
-              console.log(`Commit result for ${filePath}:`, result);
               callback(null, result);
             })
             .catch((err) => {
-              console.error(`Error committing ${filePath}:`, err);
               callback(err);
             });
         }
