@@ -1,0 +1,267 @@
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  width: 400px;
+  min-height: 328px;
+  position: relative;
+  margin: 0 auto;
+  padding: 0 34px 34px 34px;
+  box-sizing: border-box;
+}
+
+.header-block {
+  margin-top: 34px;
+  width: 184px;
+}
+
+.header-block h1 {
+  font-family: 'Comfortaa', sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.2;
+  color: #242b37;
+  margin-bottom: 8px;
+}
+
+.line-divider {
+  width: 184px;
+  height: 2px;
+  background-color: #edf6f9;
+  border: none;
+  margin-bottom: 8px;
+}
+
+.slogan {
+  width: 184px;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: #6f7d95;
+  font-weight: 400;
+  margin-bottom: 36px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+  width: 192px;
+}
+
+#status-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 20px;
+  margin-right: 12px;
+}
+
+.status-text {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+#status-icon.connected {
+  background-color: #27ae60;
+}
+
+#status-icon.disconnected {
+  background-color: #eb5757;
+}
+
+.status-text.connected {
+  color: #27ae60;
+}
+
+.status-text.disconnected {
+  color: #eb5757;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+
+.info-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-right: 12px;
+}
+
+.text-info-block {
+  width: 300px;
+  font-size: 13px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  line-height: 18px;
+  color: #242b37;
+}
+
+.text-info-block .semibold {
+  font-weight: 600;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.button-standart,
+.button-settings {
+  border: 2px solid #2f80ed;
+  border-radius: 20px;
+  background: none;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #2f80ed;
+  width: 160px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+.button-standart:hover,
+.button-standart:active,
+.button-settings:hover,
+.button-settings:active {
+  background-color: #2f80ed;
+  color: #fff;
+}
+
+.button-settings.activated {
+  background-color: #2f80ed;
+  color: #fff;
+}
+
+#settings-block {
+  margin-top: 22px;
+  display: none;
+  border-top: 2px solid #edf6f9;
+  padding-top: 8px;
+  transition: visibility 0s, height 0.3s ease;
+}
+
+#settings-block div {
+  margin-bottom: 8px;
+}
+
+#repo-label,
+#branch-label {
+  display: block;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: #242b37;
+  margin-bottom: 4px;
+}
+
+#repo,
+#branch {
+  width: 100%;
+  height: 44px;
+  background-color: #fff;
+  border: 2px solid #83a9ca;
+  border-radius: 20px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #242b37;
+  padding: 0 16px;
+  box-sizing: border-box;
+  outline: none;
+  text-align: left;
+}
+
+#repo::placeholder,
+#branch::placeholder {
+  color: #83a9ca;
+  text-align: left;
+}
+
+#repo:focus,
+#branch:focus {
+  border-color: #2f80ed;
+}
+
+#repo.alert,
+#branch.alert {
+  border-color: #eb5757;
+}
+
+#settings-save {
+  margin-top: 14px;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 20px;
+  background-color: #27ae60;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+#settings-save:hover,
+#settings-save:active {
+  background-color: #6fcf97;
+}
+
+#settings-confirmation {
+  margin-top: 12px;
+  display: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #242b37;
+  text-align: center;
+}
+
+.mascot {
+  position: absolute;
+  top: 30px;
+  right: 24px;
+  width: 146px;
+  height: 156px;
+  z-index: -1;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.mascot.offline {
+  background-image: url('../images/offline-maskot.png');
+}
+
+.mascot.online {
+  background-image: url('../images/online-maskot.png');
+}
+
+.bg-image {
+  position: absolute;
+  top: 0;
+  left: 172px;
+  width: 228px;
+  height: 272px;
+  z-index: -2;
+  background: url('../images/background.jpg') no-repeat center center;
+  background-size: contain;
+}
