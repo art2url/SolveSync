@@ -10,7 +10,7 @@
     "48": "images/app-icon.png",
     "128": "images/app-icon.png"
   },
-  "permissions": ["identity", "storage", "activeTab"],
+  "permissions": ["identity", "storage"],
   "host_permissions": [
     "https://leetcode.com/*",
     "https://github.com/*",
