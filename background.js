@@ -78,6 +78,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'commit_solution') {
     const { problemTitle, difficulty, language, code, description } = message;
 
+    // Prevent committing if essential data is missing.
+    if (
+      problemTitle === 'Unknown Problem' ||
+      difficulty === 'Unknown' ||
+      (code.trim().length === 0 && description.trim().length === 0)
+    ) {
+      sendResponse({
+        success: false,
+        error: 'Insufficient problem data; commit skipped.',
+      });
+      return;
+    }
+
     chrome.storage.local.get(
       ['repo', 'branch', 'github_token', 'github_username'],
       function (data) {
@@ -160,9 +173,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         const githubApiUrlBase = `https://api.github.com/repos/${data.github_username}/${data.repo}/contents/`;
 
+        // Modified commitFile: if file exists, skip updating.
         function commitFile(filePath, content, callback) {
           const url = githubApiUrlBase + filePath;
-
           // Check if file exists.
           fetch(url + `?ref=${data.branch}`, {
             headers: {
@@ -178,14 +191,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               }
             })
             .then((fileData) => {
+              if (fileData && fileData.sha) {
+                // File already exists; do not overwrite.
+                callback(null, fileData);
+                return;
+              }
               const body = {
                 message: commitMessage,
                 content: content,
                 branch: data.branch,
               };
-              if (fileData && fileData.sha) {
-                body.sha = fileData.sha;
-              }
               return fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -196,9 +211,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 body: JSON.stringify(body),
               });
             })
-            .then((res) => res.json())
+            .then((res) => (res ? res.json() : null))
             .then((result) => {
-              callback(null, result);
+              if (result) {
+                callback(null, result);
+              }
             })
             .catch((err) => {
               callback(err);
