@@ -1,22 +1,11 @@
 (function () {
   // Run the script only on problem pages
-  if (!window.location.href.startsWith('https://leetcode.com/problems/')) {
+  if (!window.location.href.startsWith('https://leetcode.com/problems/'))
     return;
-  }
 
   // Utility: Send captured problem data to the background script.
   function sendSolutionData(solutionData) {
-    chrome.runtime.sendMessage(
-      { action: 'commit_solution', ...solutionData },
-      function (response) {
-        if (chrome.runtime.lastError) {
-          console.error(
-            'Error sending message to background:',
-            chrome.runtime.lastError
-          );
-        }
-      }
-    );
+    chrome.runtime.sendMessage({ action: 'commit_solution', ...solutionData });
   }
 
   // List of supported languages.
@@ -73,6 +62,23 @@
     };
   }
 
+  // Helper: Convert HTML to formatted text, remove &nbsp; and compress multiple line breaks.
+  function convertDescription(html) {
+    // Remove &nbsp; entities.
+    html = html.replace(/&nbsp;/gi, ' ');
+    // Replace <br> with newline.
+    html = html.replace(/<br\s*\/?>/gi, '\n');
+    // Replace <p> tags with newlines.
+    html = html.replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '\n\n');
+    // Replace <li> with markdown bullet.
+    html = html.replace(/<li[^>]*>/gi, '- ').replace(/<\/li>/gi, '\n');
+    // Remove remaining HTML tags.
+    html = html.replace(/<[^>]+>/g, '');
+    // Compress multiple newlines into a single newline.
+    html = html.replace(/\n+/g, '\n');
+    return html.trim();
+  }
+
   // Capture static data immediately.
   function captureStaticData() {
     const titleElem = document.querySelector(
@@ -92,7 +98,14 @@
     const descriptionElem = document.querySelector(
       'div[data-track-load="description_content"]'
     );
-    const description = descriptionElem ? descriptionElem.innerText.trim() : '';
+    let description = '';
+    if (descriptionElem) {
+      description = convertDescription(descriptionElem.innerHTML);
+      if (description.length > 0) {
+        // Wrap the description in triple backticks.
+        description = '```\n' + description + '\n```';
+      }
+    }
 
     const language = findProgrammingLanguage();
 
@@ -105,7 +118,6 @@
       'div.view-lines.monaco-mouse-cursor-text'
     );
     const code = codeElem ? codeElem.innerText : '';
-
     callback({ code });
   }
 
@@ -117,18 +129,15 @@
     const submitButton = document.querySelector(
       'button[data-e2e-locator="console-submit-button"]'
     );
-
     if (submitButton) {
       submitButton.addEventListener('click', () => {
         const observer = new MutationObserver((mutations, observerInstance) => {
           const statusElem = document.querySelector(
             'span[data-e2e-locator="submission-result"]'
           );
-
           if (statusElem && statusElem.textContent.trim() === 'Accepted') {
             captureDynamicData((dynamicData) => {
               const solutionData = { ...staticData, ...dynamicData };
-
               if (
                 solutionData.problemTitle !== 'Unknown Problem' ||
                 solutionData.description.length > 0 ||
@@ -137,11 +146,10 @@
                 sendSolutionData(solutionData);
               }
             });
-
-            observerInstance.disconnect(); // Stop observing after capturing.
+            observerInstance.disconnect();
+            // Stop observing after capturing.
           }
         });
-
         observer.observe(document.body, { childList: true, subtree: true });
       });
     }
@@ -156,6 +164,5 @@
       captureAndSendData();
     }, 3000)
   );
-
   observer.observe(document.body, { childList: true, subtree: true });
 })();
