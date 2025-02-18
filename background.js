@@ -13,7 +13,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ error: chrome.runtime.lastError });
           return;
         }
-
         if (redirectUrl) {
           try {
             const urlObj = new URL(redirectUrl);
@@ -24,7 +23,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               });
               return;
             }
-
             // Exchange the authorization code for token & username via backend.
             fetch('https://solvesync-backend.onrender.com/auth/github', {
               method: 'POST',
@@ -68,7 +66,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       }
     );
-
     // Indicate that the response will be sent asynchronously.
     return true;
   }
@@ -77,20 +74,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'commit_solution') {
     const { problemTitle, difficulty, language, code, description } = message;
-
     // Prevent committing if essential data is missing.
     if (
       problemTitle === 'Unknown Problem' ||
       difficulty === 'Unknown' ||
       (code.trim().length === 0 && description.trim().length === 0)
     ) {
+      chrome.storage.local.set({
+        commit_status: 'Insufficient problem data; commit skipped.',
+      });
       sendResponse({
         success: false,
         error: 'Insufficient problem data; commit skipped.',
       });
       return;
     }
-
     chrome.storage.local.get(
       ['repo', 'branch', 'github_token', 'github_username'],
       function (data) {
@@ -100,15 +98,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           !data.github_token ||
           !data.github_username
         ) {
+          chrome.storage.local.set({
+            commit_status: 'Missing repository settings or GitHub credentials.',
+          });
           sendResponse({
             success: false,
             error: 'Missing repository settings or GitHub credentials.',
           });
           return;
         }
-
         const diffFolder = difficulty.toLowerCase();
-
         function slugify(text) {
           return text
             .toLowerCase()
@@ -118,7 +117,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             .replace(/\-\-+/g, '-');
         }
         const slugTitle = slugify(problemTitle);
-
         const extensionMapping = {
           c: '.c',
           'c#': '.cs',
@@ -152,25 +150,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           typescript: '.ts',
         }; // TODO: add more languages.
         const fileExt = extensionMapping[language.toLowerCase()] || '.txt';
-
         const problemFolderPath = `${diffFolder}/${slugTitle}`;
         const solutionFilePath = `${problemFolderPath}/${slugTitle}${fileExt}`;
         const readmeFilePath = `${problemFolderPath}/readme.md`;
         const commitMessage = `Add solution for ${problemTitle}`;
-
         let encodedSolution, encodedReadme;
         try {
           encodedSolution = btoa(unescape(encodeURIComponent(code)));
           const readmeContent = `# ${problemTitle}\n\n${description}`;
           encodedReadme = btoa(unescape(encodeURIComponent(readmeContent)));
         } catch (e) {
+          chrome.storage.local.set({
+            commit_status: 'Failed to encode solution or description.',
+          });
           sendResponse({
             success: false,
             error: 'Failed to encode solution or description.',
           });
           return;
         }
-
         const githubApiUrlBase = `https://api.github.com/repos/${data.github_username}/${data.repo}/contents/`;
 
         // Modified commitFile: if file exists, skip updating.
@@ -221,14 +219,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               callback(err);
             });
         }
-
         // Commit the solution file first, then the readme file.
         commitFile(
           solutionFilePath,
           encodedSolution,
           function (err, solutionResult) {
             if (err) {
-              sendResponse({ success: false, error: err.toString() });
+              const errorMsg = err.toString();
+              chrome.storage.local.set({ commit_status: 'Error: ' + errorMsg });
+              sendResponse({ success: false, error: errorMsg });
               return;
             }
             commitFile(
@@ -236,9 +235,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               encodedReadme,
               function (err, readmeResult) {
                 if (err) {
-                  sendResponse({ success: false, error: err.toString() });
+                  const errorMsg = err.toString();
+                  chrome.storage.local.set({
+                    commit_status: 'Error: ' + errorMsg,
+                  });
+                  sendResponse({ success: false, error: errorMsg });
                   return;
                 }
+                let truncatedTitle = problemTitle;
+                if (truncatedTitle.length > 30) {
+                  truncatedTitle = truncatedTitle.substring(0, 27) + '...';
+                }
+                const commitStatusMessage = `${truncatedTitle} was successfully committed!`;
+                chrome.storage.local.set({
+                  commit_status: commitStatusMessage,
+                });
                 sendResponse({
                   success: true,
                   data: { solution: solutionResult, readme: readmeResult },
