@@ -73,31 +73,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'commit_solution') {
-    const { problemTitle, difficulty, language, code, description } = message;
+    const { problemTitle, difficulty, language, code, description, problemId } =
+      message;
 
-    // Prevent committing if essential data is missing.
-    if (
-      problemTitle === 'Unknown Problem' ||
-      difficulty === 'Unknown' ||
-      (code.trim().length === 0 && description.trim().length === 0)
-    ) {
+    // Check if essential data is missing and log which fields are missing.
+    let missingFields = [];
+    if (problemTitle === 'Unknown Problem') missingFields.push('problem title');
+    if (difficulty === 'Unknown') missingFields.push('difficulty');
+    if (code.trim().length === 0 && description.trim().length === 0)
+      missingFields.push('solution code/description');
+    if (!problemId) missingFields.push('problem ID');
+
+    if (missingFields.length > 0) {
+      const errorMsg =
+        'Insufficient problem data; missing: ' + missingFields.join(', ');
       chrome.storage.local.set({
-        commit_status: 'Insufficient problem data; commit skipped.',
-        lastProblem: '',
+        commit_status: errorMsg,
+        lastProblemId: '',
       });
+      console.log('Commit skipped:', errorMsg);
       sendResponse({
         success: false,
-        error: 'Insufficient problem data; commit skipped.',
+        error: errorMsg,
       });
       return;
     }
 
-    // Clear previous commit state if the problem is new.
-    chrome.storage.local.get(['lastProblem'], function (storedData) {
-      if (!storedData.lastProblem || storedData.lastProblem !== problemTitle) {
-        chrome.storage.local.remove(['commit_status', 'lastProblem']);
+    // Check stored problem ID; if different, clear previous state.
+    chrome.storage.local.get(['lastProblemId'], function (storedData) {
+      if (storedData.lastProblemId && storedData.lastProblemId !== problemId) {
+        chrome.storage.local.remove(
+          ['commit_status', 'lastProblemId'],
+          function () {
+            processCommit();
+          }
+        );
+      } else {
+        processCommit();
       }
+    });
 
+    function processCommit() {
       chrome.storage.local.get(
         ['repo', 'branch', 'github_token', 'github_username'],
         function (data) {
@@ -107,14 +123,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             !data.github_token ||
             !data.github_username
           ) {
+            const errMsg = 'Missing repository settings or GitHub credentials.';
             chrome.storage.local.set({
-              commit_status:
-                'Missing repository settings or GitHub credentials.',
-              lastProblem: '',
+              commit_status: errMsg,
+              lastProblemId: '',
             });
+            console.log(errMsg);
             sendResponse({
               success: false,
-              error: 'Missing repository settings or GitHub credentials.',
+              error: errMsg,
             });
             return;
           }
@@ -162,7 +179,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             bash: '.sh',
             swift: '.swift',
             typescript: '.ts',
-          }; // TODO: add more languages.
+          };
           const fileExt = extensionMapping[language.toLowerCase()] || '.txt';
 
           const problemFolderPath = `${diffFolder}/${slugTitle}`;
@@ -176,23 +193,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const readmeContent = `# ${problemTitle}\n\n${description}`;
             encodedReadme = btoa(unescape(encodeURIComponent(readmeContent)));
           } catch (e) {
+            const errMsg = 'Failed to encode solution or description.';
             chrome.storage.local.set({
-              commit_status: 'Failed to encode solution or description.',
-              lastProblem: '',
+              commit_status: errMsg,
+              lastProblemId: '',
             });
+            console.log(errMsg, e);
             sendResponse({
               success: false,
-              error: 'Failed to encode solution or description.',
+              error: errMsg,
             });
             return;
           }
 
           const githubApiUrlBase = `https://api.github.com/repos/${data.github_username}/${data.repo}/contents/`;
 
-          // Modified commitFile: if file exists, skip updating.
+          // commitFile: if file exists, do not update.
           function commitFile(filePath, content, callback) {
             const url = githubApiUrlBase + filePath;
-            // Check if file exists.
             fetch(url + `?ref=${data.branch}`, {
               headers: {
                 Authorization: `token ${data.github_token}`,
@@ -208,7 +226,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               })
               .then((fileData) => {
                 if (fileData && fileData.sha) {
-                  // File already exists; do not overwrite.
                   callback(null, fileData);
                   return;
                 }
@@ -238,17 +255,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               });
           }
 
-          // Commit the solution file first, then the readme file.
           commitFile(
             solutionFilePath,
             encodedSolution,
             function (err, solutionResult) {
               if (err) {
+                const errorMsg = err.toString();
                 chrome.storage.local.set({
-                  commit_status: 'Error: ' + err.toString(),
-                  lastProblem: '',
+                  commit_status: 'Error: ' + errorMsg,
+                  lastProblemId: '',
                 });
-                sendResponse({ success: false, error: err.toString() });
+                console.log('Error committing solution file:', errorMsg);
+                sendResponse({ success: false, error: errorMsg });
                 return;
               }
               commitFile(
@@ -256,11 +274,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 encodedReadme,
                 function (err, readmeResult) {
                   if (err) {
+                    const errorMsg = err.toString();
                     chrome.storage.local.set({
-                      commit_status: 'Error: ' + err.toString(),
-                      lastProblem: '',
+                      commit_status: 'Error: ' + errorMsg,
+                      lastProblemId: '',
                     });
-                    sendResponse({ success: false, error: err.toString() });
+                    console.log('Error committing readme file:', errorMsg);
+                    sendResponse({ success: false, error: errorMsg });
                     return;
                   }
                   let truncatedTitle = problemTitle;
@@ -270,8 +290,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   const commitStatusMessage = `${truncatedTitle} was successfully committed!`;
                   chrome.storage.local.set({
                     commit_status: commitStatusMessage,
-                    lastProblem: problemTitle,
+                    lastProblemId: problemId,
                   });
+                  console.log('Commit successful:', commitStatusMessage);
                   sendResponse({
                     success: true,
                     data: { solution: solutionResult, readme: readmeResult },
@@ -282,7 +303,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           );
         }
       );
-    });
+    }
     return true;
   }
 });
