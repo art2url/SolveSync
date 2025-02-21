@@ -87,6 +87,13 @@
     const problemTitle = titleElem
       ? titleElem.innerText.trim()
       : 'Unknown Problem';
+    let problemId = null;
+    if (problemTitle !== 'Unknown Problem') {
+      const match = problemTitle.match(/^(\d+)\./);
+      if (match) {
+        problemId = match[1]; // Capture the numeric prefix as the problem ID.
+      }
+    }
 
     const difficultyElem = document.querySelector(
       'div[class*="text-difficulty-"]'
@@ -109,7 +116,7 @@
 
     const language = findProgrammingLanguage();
 
-    return { problemTitle, difficulty, description, language };
+    return { problemTitle, problemId, difficulty, description, language };
   }
 
   // Capture dynamic data after delay.
