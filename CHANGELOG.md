@@ -1,8 +1,19 @@
-## [Unreleased]
+# Changelog
 
-### Added
+### v1.0.3 - Updated UI
 
-- Display of submitted problem names in the UI.
-- Submission status indicators with success/error messages.
-- Detailed error messages when submissions fail.
-- Proper formatting of submitted problems in `.md` files.
+- Display submitted problem names in the UI.
+- Provide detailed error messages when submissions fail.
+- Added a handler to prevent continuously rewriting previous commits.
+
+### v1.0.2 - Stable
+
+- Fixed the issue where fast submissions rewrote previous commits.
+
+### v1.0.1 - Fix
+
+- Improved formatting of submitted problems in `.md` files.
+
+### v1.0.0 - Initial
+
+- Initial functionality.

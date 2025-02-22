@@ -4,10 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.storage.local.get(
       ['github_token', 'github_username'],
       function (data) {
-        const statusText = document.getElementById(
-          'github-username',
-          'status-text'
-        );
+        const statusText = document.getElementById('github-username');
         const statusIcon = document.getElementById('status-icon');
         const loginButton = document.getElementById('github-login');
         const clearDataButton = document.getElementById('clear-data');
@@ -36,9 +33,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     );
+
+    // Update slogan with last commit status.
+    chrome.storage.local.get(['commit_status'], function (data) {
+      const sloganEl = document.querySelector('.slogan');
+      if (data.commit_status) {
+        sloganEl.innerText = data.commit_status;
+      } else {
+        sloganEl.innerText = 'Upload your LeetCode solutions in GitHub';
+      }
+    });
   }
 
-  // Initial UI update on popup load.
   updateLoginStatus();
 
   // Handler for "Login with GitHub" button.
@@ -47,16 +53,10 @@ document.addEventListener('DOMContentLoaded', function () {
     loginBtn.addEventListener('click', function () {
       loginBtn.innerText = 'Logging in...';
       loginBtn.disabled = true;
-
       // Send message to background to start the OAuth flow.
       chrome.runtime.sendMessage(
         { action: 'start_oauth' },
         function (response) {
-          if (response && response.success) {
-            // OAuth flow succeeded
-          } else {
-            // OAuth flow error
-          }
           updateLoginStatus();
           loginBtn.innerText = 'Login with GitHub';
           loginBtn.disabled = false;
@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
       );
     });
   }
-
   // --- SETTINGS SECTION ---
   // Pre-populate settings inputs with stored values when the popup loads.
   chrome.storage.local.get(['repo', 'branch'], function (data) {
@@ -128,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Handler for "Save Settings" button.
+
   const settingsSaveButton = document.getElementById('settings-save');
   if (settingsSaveButton) {
     settingsSaveButton.addEventListener('click', function () {
@@ -141,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function () {
         showConfirmation('Both fields are required', true);
         return;
       }
-
       // Confirmation.
       showConfirmation('Settings saved successfully!');
     });

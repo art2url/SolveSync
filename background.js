@@ -13,7 +13,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ error: chrome.runtime.lastError });
           return;
         }
-
         if (redirectUrl) {
           try {
             const urlObj = new URL(redirectUrl);
@@ -24,7 +23,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               });
               return;
             }
-
             // Exchange the authorization code for token & username via backend.
             fetch('https://solvesync-backend.onrender.com/auth/github', {
               method: 'POST',
@@ -68,7 +66,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       }
     );
-
     // Indicate that the response will be sent asynchronously.
     return true;
   }
@@ -76,179 +73,237 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'commit_solution') {
-    const { problemTitle, difficulty, language, code, description } = message;
+    const { problemTitle, difficulty, language, code, description, problemId } =
+      message;
 
-    // Prevent committing if essential data is missing.
-    if (
-      problemTitle === 'Unknown Problem' ||
-      difficulty === 'Unknown' ||
-      (code.trim().length === 0 && description.trim().length === 0)
-    ) {
+    // Check if essential data is missing and log which fields are missing.
+    let missingFields = [];
+    if (problemTitle === 'Unknown Problem') missingFields.push('problem title');
+    if (difficulty === 'Unknown') missingFields.push('difficulty');
+    if (code.trim().length === 0 && description.trim().length === 0)
+      missingFields.push('solution code/description');
+    if (!problemId) missingFields.push('problem ID');
+
+    if (missingFields.length > 0) {
+      const errorMsg =
+        'Insufficient problem data; missing: ' + missingFields.join(', ');
+      chrome.storage.local.set({
+        commit_status: errorMsg,
+        lastProblemId: '',
+      });
+      console.log('Commit skipped:', errorMsg);
       sendResponse({
         success: false,
-        error: 'Insufficient problem data; commit skipped.',
+        error: errorMsg,
       });
       return;
     }
 
-    chrome.storage.local.get(
-      ['repo', 'branch', 'github_token', 'github_username'],
-      function (data) {
-        if (
-          !data.repo ||
-          !data.branch ||
-          !data.github_token ||
-          !data.github_username
-        ) {
-          sendResponse({
-            success: false,
-            error: 'Missing repository settings or GitHub credentials.',
-          });
-          return;
-        }
-
-        const diffFolder = difficulty.toLowerCase();
-
-        function slugify(text) {
-          return text
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-')
-            .replace(/[^\w\-]+/g, '')
-            .replace(/\-\-+/g, '-');
-        }
-        const slugTitle = slugify(problemTitle);
-
-        const extensionMapping = {
-          c: '.c',
-          'c#': '.cs',
-          'c++': '.cpp',
-          cpp: '.cpp',
-          dart: '.dart',
-          go: '.go',
-          haskell: '.hs',
-          java: '.java',
-          javascript: '.js',
-          js: '.js',
-          julia: '.jl',
-          kotlin: '.kt',
-          lua: '.lua',
-          'ms sql server': '.sql',
-          mysql: '.sql',
-          'objective-c': '.m',
-          objectivec: '.m',
-          oracle: '.sql',
-          php: '.php',
-          perl: '.pl',
-          python: '.py',
-          python3: '.py',
-          r: '.r',
-          ruby: '.rb',
-          rust: '.rs',
-          scala: '.scala',
-          shell: '.sh',
-          bash: '.sh',
-          swift: '.swift',
-          typescript: '.ts',
-        }; // TODO: add more languages.
-        const fileExt = extensionMapping[language.toLowerCase()] || '.txt';
-
-        const problemFolderPath = `${diffFolder}/${slugTitle}`;
-        const solutionFilePath = `${problemFolderPath}/${slugTitle}${fileExt}`;
-        const readmeFilePath = `${problemFolderPath}/readme.md`;
-        const commitMessage = `Add solution for ${problemTitle}`;
-
-        let encodedSolution, encodedReadme;
-        try {
-          encodedSolution = btoa(unescape(encodeURIComponent(code)));
-          const readmeContent = `# ${problemTitle}\n\n${description}`;
-          encodedReadme = btoa(unescape(encodeURIComponent(readmeContent)));
-        } catch (e) {
-          sendResponse({
-            success: false,
-            error: 'Failed to encode solution or description.',
-          });
-          return;
-        }
-
-        const githubApiUrlBase = `https://api.github.com/repos/${data.github_username}/${data.repo}/contents/`;
-
-        // Modified commitFile: if file exists, skip updating.
-        function commitFile(filePath, content, callback) {
-          const url = githubApiUrlBase + filePath;
-          // Check if file exists.
-          fetch(url + `?ref=${data.branch}`, {
-            headers: {
-              Authorization: `token ${data.github_token}`,
-              Accept: 'application/vnd.github.v3+json',
-            },
-          })
-            .then((res) => {
-              if (res.status === 200) {
-                return res.json();
-              } else {
-                return null;
-              }
-            })
-            .then((fileData) => {
-              if (fileData && fileData.sha) {
-                // File already exists; do not overwrite.
-                callback(null, fileData);
-                return;
-              }
-              const body = {
-                message: commitMessage,
-                content: content,
-                branch: data.branch,
-              };
-              return fetch(url, {
-                method: 'PUT',
-                headers: {
-                  Authorization: `token ${data.github_token}`,
-                  'Content-Type': 'application/json',
-                  Accept: 'application/vnd.github.v3+json',
-                },
-                body: JSON.stringify(body),
-              });
-            })
-            .then((res) => (res ? res.json() : null))
-            .then((result) => {
-              if (result) {
-                callback(null, result);
-              }
-            })
-            .catch((err) => {
-              callback(err);
-            });
-        }
-
-        // Commit the solution file first, then the readme file.
-        commitFile(
-          solutionFilePath,
-          encodedSolution,
-          function (err, solutionResult) {
-            if (err) {
-              sendResponse({ success: false, error: err.toString() });
-              return;
-            }
-            commitFile(
-              readmeFilePath,
-              encodedReadme,
-              function (err, readmeResult) {
-                if (err) {
-                  sendResponse({ success: false, error: err.toString() });
-                  return;
-                }
-                sendResponse({
-                  success: true,
-                  data: { solution: solutionResult, readme: readmeResult },
-                });
-              }
-            );
+    // Check stored problem ID; if different, clear previous state.
+    chrome.storage.local.get(['lastProblemId'], function (storedData) {
+      if (storedData.lastProblemId && storedData.lastProblemId !== problemId) {
+        chrome.storage.local.remove(
+          ['commit_status', 'lastProblemId'],
+          function () {
+            processCommit();
           }
         );
+      } else {
+        processCommit();
       }
-    );
+    });
+
+    function processCommit() {
+      chrome.storage.local.get(
+        ['repo', 'branch', 'github_token', 'github_username'],
+        function (data) {
+          if (
+            !data.repo ||
+            !data.branch ||
+            !data.github_token ||
+            !data.github_username
+          ) {
+            const errMsg = 'Missing repository settings or GitHub credentials.';
+            chrome.storage.local.set({
+              commit_status: errMsg,
+              lastProblemId: '',
+            });
+            console.log(errMsg);
+            sendResponse({
+              success: false,
+              error: errMsg,
+            });
+            return;
+          }
+
+          const diffFolder = difficulty.toLowerCase();
+
+          function slugify(text) {
+            return text
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[^\w\-]+/g, '')
+              .replace(/\-\-+/g, '-');
+          }
+          const slugTitle = slugify(problemTitle);
+
+          const extensionMapping = {
+            c: '.c',
+            'c#': '.cs',
+            'c++': '.cpp',
+            cpp: '.cpp',
+            dart: '.dart',
+            go: '.go',
+            haskell: '.hs',
+            java: '.java',
+            javascript: '.js',
+            js: '.js',
+            julia: '.jl',
+            kotlin: '.kt',
+            lua: '.lua',
+            'ms sql server': '.sql',
+            mysql: '.sql',
+            'objective-c': '.m',
+            objectivec: '.m',
+            oracle: '.sql',
+            php: '.php',
+            perl: '.pl',
+            python: '.py',
+            python3: '.py',
+            r: '.r',
+            ruby: '.rb',
+            rust: '.rs',
+            scala: '.scala',
+            shell: '.sh',
+            bash: '.sh',
+            swift: '.swift',
+            typescript: '.ts',
+          };
+          const fileExt = extensionMapping[language.toLowerCase()] || '.txt';
+
+          const problemFolderPath = `${diffFolder}/${slugTitle}`;
+          const solutionFilePath = `${problemFolderPath}/${slugTitle}${fileExt}`;
+          const readmeFilePath = `${problemFolderPath}/readme.md`;
+          const commitMessage = `Add solution for ${problemTitle}`;
+
+          let encodedSolution, encodedReadme;
+          try {
+            encodedSolution = btoa(unescape(encodeURIComponent(code)));
+            const readmeContent = `# ${problemTitle}\n\n${description}`;
+            encodedReadme = btoa(unescape(encodeURIComponent(readmeContent)));
+          } catch (e) {
+            const errMsg = 'Failed to encode solution or description.';
+            chrome.storage.local.set({
+              commit_status: errMsg,
+              lastProblemId: '',
+            });
+            console.log(errMsg, e);
+            sendResponse({
+              success: false,
+              error: errMsg,
+            });
+            return;
+          }
+
+          const githubApiUrlBase = `https://api.github.com/repos/${data.github_username}/${data.repo}/contents/`;
+
+          // commitFile: if file exists, do not update.
+          function commitFile(filePath, content, callback) {
+            const url = githubApiUrlBase + filePath;
+            fetch(url + `?ref=${data.branch}`, {
+              headers: {
+                Authorization: `token ${data.github_token}`,
+                Accept: 'application/vnd.github.v3+json',
+              },
+            })
+              .then((res) => {
+                if (res.status === 200) {
+                  return res.json();
+                } else {
+                  return null;
+                }
+              })
+              .then((fileData) => {
+                if (fileData && fileData.sha) {
+                  callback(null, fileData);
+                  return;
+                }
+                const body = {
+                  message: commitMessage,
+                  content: content,
+                  branch: data.branch,
+                };
+                return fetch(url, {
+                  method: 'PUT',
+                  headers: {
+                    Authorization: `token ${data.github_token}`,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/vnd.github.v3+json',
+                  },
+                  body: JSON.stringify(body),
+                });
+              })
+              .then((res) => (res ? res.json() : null))
+              .then((result) => {
+                if (result) {
+                  callback(null, result);
+                }
+              })
+              .catch((err) => {
+                callback(err);
+              });
+          }
+
+          commitFile(
+            solutionFilePath,
+            encodedSolution,
+            function (err, solutionResult) {
+              if (err) {
+                const errorMsg = err.toString();
+                chrome.storage.local.set({
+                  commit_status: 'Error: ' + errorMsg,
+                  lastProblemId: '',
+                });
+                console.log('Error committing solution file:', errorMsg);
+                sendResponse({ success: false, error: errorMsg });
+                return;
+              }
+              commitFile(
+                readmeFilePath,
+                encodedReadme,
+                function (err, readmeResult) {
+                  if (err) {
+                    const errorMsg = err.toString();
+                    chrome.storage.local.set({
+                      commit_status: 'Error: ' + errorMsg,
+                      lastProblemId: '',
+                    });
+                    console.log('Error committing readme file:', errorMsg);
+                    sendResponse({ success: false, error: errorMsg });
+                    return;
+                  }
+                  let truncatedTitle = problemTitle;
+                  if (truncatedTitle.length > 30) {
+                    truncatedTitle = truncatedTitle.substring(0, 27) + '...';
+                  }
+                  const commitStatusMessage = `${truncatedTitle} was successfully committed!`;
+                  chrome.storage.local.set({
+                    commit_status: commitStatusMessage,
+                    lastProblemId: problemId,
+                  });
+                  console.log('Commit successful:', commitStatusMessage);
+                  sendResponse({
+                    success: true,
+                    data: { solution: solutionResult, readme: readmeResult },
+                  });
+                }
+              );
+            }
+          );
+        }
+      );
+    }
     return true;
   }
 });
